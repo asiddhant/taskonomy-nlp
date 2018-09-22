@@ -36,3 +36,7 @@ __pycache__
 
 .coverage
 .pytest_cache/
+
+
+datasets/
+saved_models/
