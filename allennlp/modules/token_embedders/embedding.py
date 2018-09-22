@@ -1,14 +1,11 @@
 import gzip
 import logging
-import warnings
 
 from overrides import overrides
 import numpy
 import torch
 from torch.nn.functional import embedding
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    import h5py
+import h5py
 
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError
@@ -38,7 +35,7 @@ class Embedding(TokenEmbedder):
 
     Parameters
     ----------
-    num_embeddings : int:
+    num_embeddings :, int:
         Size of the dictionary of embeddings (vocabulary size).
     embedding_dim : int
         The size of each embedding vector.
@@ -91,7 +88,7 @@ class Embedding(TokenEmbedder):
         if weight is None:
             weight = torch.FloatTensor(num_embeddings, embedding_dim)
             self.weight = torch.nn.Parameter(weight, requires_grad=trainable)
-            torch.nn.init.xavier_uniform_(self.weight)
+            torch.nn.init.xavier_uniform(self.weight.data)
         else:
             if weight.size() != (num_embeddings, embedding_dim):
                 raise ConfigurationError("A weight matrix was passed with contradictory embedding shapes.")

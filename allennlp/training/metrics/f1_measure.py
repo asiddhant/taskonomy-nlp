@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 
 from allennlp.training.metrics.metric import Metric
+from allennlp.nn.util import ones_like
 from allennlp.common.checks import ConfigurationError
 
 
@@ -36,6 +37,7 @@ class F1Measure(Metric):
         mask: ``torch.Tensor``, optional (default = None).
             A masking tensor the same size as ``gold_labels``.
         """
+        # Get the data from the Variables.
         predictions, gold_labels, mask = self.unwrap_to_tensors(predictions, gold_labels, mask)
 
         num_classes = predictions.size(-1)
@@ -43,7 +45,7 @@ class F1Measure(Metric):
             raise ConfigurationError("A gold label passed to F1Measure contains an id >= {}, "
                                      "the number of classes.".format(num_classes))
         if mask is None:
-            mask = torch.ones_like(gold_labels)
+            mask = ones_like(gold_labels)
         mask = mask.float()
         gold_labels = gold_labels.float()
         positive_label_mask = gold_labels.eq(self._positive_label).float()

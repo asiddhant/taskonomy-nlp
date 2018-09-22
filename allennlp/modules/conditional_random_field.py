@@ -4,6 +4,7 @@ Conditional random field
 from typing import List, Tuple, Dict
 
 import torch
+from torch.autograd import Variable
 
 from allennlp.common.checks import ConfigurationError
 import allennlp.nn.util as util
@@ -140,10 +141,10 @@ class ConditionalRandomField(torch.nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        torch.nn.init.xavier_normal_(self.transitions)
+        torch.nn.init.xavier_normal(self.transitions)
         if self.include_start_end_transitions:
-            torch.nn.init.normal_(self.start_transitions)
-            torch.nn.init.normal_(self.end_transitions)
+            torch.nn.init.normal(self.start_transitions)
+            torch.nn.init.normal(self.end_transitions)
 
     def _input_likelihood(self, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """
@@ -271,16 +272,14 @@ class ConditionalRandomField(torch.nn.Module):
         """
         # pylint: disable=arguments-differ
         if mask is None:
-            mask = torch.ones(*tags.size(), dtype=torch.long)
+            mask = torch.autograd.Variable(torch.ones(*tags.size()).long())
 
         log_denominator = self._input_likelihood(inputs, mask)
         log_numerator = self._joint_likelihood(inputs, tags, mask)
 
         return torch.sum(log_numerator - log_denominator)
 
-    def viterbi_tags(self,
-                     logits: torch.Tensor,
-                     mask: torch.Tensor) -> List[Tuple[List[int], float]]:
+    def viterbi_tags(self, logits: Variable, mask: Variable) -> List[List[int]]:
         """
         Uses viterbi algorithm to find most likely tags for the given inputs.
         If constraints are applied, disallows all other transitions.
@@ -304,19 +303,18 @@ class ConditionalRandomField(torch.nn.Module):
 
         if self.include_start_end_transitions:
             transitions[start_tag, :num_tags] = (
-                    self.start_transitions.detach() * self._constraint_mask[start_tag, :num_tags].data +
-                    -10000.0 * (1 - self._constraint_mask[start_tag, :num_tags].detach())
+                    self.start_transitions.data * self._constraint_mask[start_tag, :num_tags].data +
+                    -10000.0 * (1 - self._constraint_mask[start_tag, :num_tags].data)
             )
             transitions[:num_tags, end_tag] = (
-                    self.end_transitions.detach() * self._constraint_mask[:num_tags, end_tag].data +
-                    -10000.0 * (1 - self._constraint_mask[:num_tags, end_tag].detach())
+                    self.end_transitions.data * self._constraint_mask[:num_tags, end_tag].data +
+                    -10000.0 * (1 - self._constraint_mask[:num_tags, end_tag].data)
             )
         else:
-            transitions[start_tag, :num_tags] = (-10000.0 *
-                                                 (1 - self._constraint_mask[start_tag, :num_tags].detach()))
-            transitions[:num_tags, end_tag] = -10000.0 * (1 - self._constraint_mask[:num_tags, end_tag].detach())
+            transitions[start_tag, :num_tags] = -10000.0 * (1 - self._constraint_mask[start_tag, :num_tags].data)
+            transitions[:num_tags, end_tag] = -10000.0 * (1 - self._constraint_mask[:num_tags, end_tag].data)
 
-        best_paths = []
+        all_tags = []
         # Pad the max sequence length by 2 to account for start_tag + end_tag.
         tag_sequence = torch.Tensor(max_seq_length + 2, num_tags + 2)
 
@@ -333,9 +331,8 @@ class ConditionalRandomField(torch.nn.Module):
             tag_sequence[sequence_length + 1, end_tag] = 0.
 
             # We pass the tags and the transitions to ``viterbi_decode``.
-            viterbi_path, viterbi_score = util.viterbi_decode(tag_sequence[:(sequence_length + 2)], transitions)
+            viterbi_path, _ = util.viterbi_decode(tag_sequence[:(sequence_length + 2)], transitions)
             # Get rid of START and END sentinels and append.
-            viterbi_path = viterbi_path[1:-1]
-            best_paths.append((viterbi_path, viterbi_score.item()))
+            all_tags.append(viterbi_path[1:-1])
 
-        return best_paths
+        return all_tags

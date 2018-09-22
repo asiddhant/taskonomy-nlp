@@ -39,7 +39,6 @@ JsonDict = Dict[str, Any]  # pylint: disable=invalid-name
 START_SYMBOL = '@start@'
 END_SYMBOL = '@end@'
 
-
 def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name,too-many-return-statements
     """
     Sanitize turns PyTorch and Numpy types into basic Python types so they
@@ -48,7 +47,9 @@ def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name,too-many-return-sta
     if isinstance(x, (str, float, int, bool)):
         # x is already serializable
         return x
-    elif isinstance(x, torch.Tensor):
+    elif isinstance(x, torch.autograd.Variable):
+        return sanitize(x.data)
+    elif isinstance(x, torch._TensorBase):  # pylint: disable=protected-access
         # tensor needs to be converted to a list (and moved to cpu if necessary)
         return x.cpu().tolist()
     elif isinstance(x, numpy.ndarray):
@@ -68,12 +69,8 @@ def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name,too-many-return-sta
         return x.text
     elif x is None:
         return "None"
-    elif hasattr(x, 'to_json'):
-        return x.to_json()
     else:
-        raise ValueError(f"Cannot sanitize {x} of type {type(x)}. "
-                         "If this is your own custom class, add a `to_json(self)` method "
-                         "that returns a JSON-like object.")
+        raise ValueError("cannot sanitize {} of type {}".format(x, type(x)))
 
 def group_by_count(iterable: List[Any], count: int, default_value: Any) -> List[List[Any]]:
     """

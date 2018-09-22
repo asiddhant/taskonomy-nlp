@@ -1,7 +1,6 @@
 import atexit
 import logging
 import os
-import pathlib
 import subprocess
 
 from overrides import overrides
@@ -14,9 +13,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 SEMPRE_EXECUTOR_JAR = "https://s3-us-west-2.amazonaws.com/allennlp/misc/wikitables-executor-0.1.0.jar"
 ABBREVIATIONS_FILE = "https://s3-us-west-2.amazonaws.com/allennlp/misc/wikitables-abbreviations.tsv"
 GROW_FILE = "https://s3-us-west-2.amazonaws.com/allennlp/misc/wikitables-grow.grammar"
-SEMPRE_DIR = str(pathlib.Path('data/'))
-SEMPRE_ABBREVIATIONS_PATH = os.path.join(SEMPRE_DIR, "abbreviations.tsv")
-SEMPRE_GRAMMAR_PATH = os.path.join(SEMPRE_DIR, "grow.grammar")
+SEMPRE_DIR = 'data/'
 
 
 class WikiTablesAccuracy(Metric):

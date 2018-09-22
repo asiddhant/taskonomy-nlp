@@ -70,7 +70,8 @@ class Field(Generic[DataArray]):
 
     def as_tensor(self,
                   padding_lengths: Dict[str, int],
-                  cuda_device: int = -1) -> DataArray:
+                  cuda_device: int = -1,
+                  for_training: bool = True) -> DataArray:
         """
         Given a set of specified padding lengths, actually pad the data in this field and return a
         torch Tensor (or a more complex data structure) of the correct shape.  We also take a
@@ -85,6 +86,10 @@ class Field(Generic[DataArray]):
         cuda_device : ``int``
             If cuda_device >= 0, GPUs are available and Pytorch was compiled with CUDA support, we
             will allocate tensors on this device instead of on the CPU.
+        for_training : ``bool``, optional (default=``True``)
+            If ``False``, we will pass the ``volatile=True`` flag when constructing variables,
+            which disables gradient computations in the graph.  This makes inference more efficient
+            (particularly in memory usage), but is incompatible with training models.
         """
         raise NotImplementedError
 

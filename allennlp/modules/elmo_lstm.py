@@ -1,14 +1,13 @@
 """
 A stacked bidirectional LSTM with skip connections between layers.
 """
+
 from typing import Optional, Tuple, List
-import warnings
 
 import torch
 from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    import h5py
+from torch.autograd import Variable
+import h5py
 import numpy
 
 from allennlp.modules.lstm_cell_with_projection import LstmCellWithProjection
@@ -125,17 +124,19 @@ class ElmoLstm(_EncoderBase):
         num_layers, num_valid, returned_timesteps, encoder_dim = stacked_sequence_output.size()
         # Add back invalid rows which were removed in the call to sort_and_run_forward.
         if num_valid < batch_size:
-            zeros = stacked_sequence_output.new_zeros(num_layers,
-                                                      batch_size - num_valid,
-                                                      returned_timesteps,
-                                                      encoder_dim)
+            zeros = stacked_sequence_output.data.new(num_layers,
+                                                     batch_size - num_valid,
+                                                     returned_timesteps,
+                                                     encoder_dim).fill_(0)
+            zeros = Variable(zeros)
             stacked_sequence_output = torch.cat([stacked_sequence_output, zeros], 1)
 
             # The states also need to have invalid rows added back.
             new_states = []
             for state in final_states:
                 state_dim = state.size(-1)
-                zeros = state.new_zeros(num_layers, batch_size - num_valid, state_dim)
+                zeros = state.data.new(num_layers, batch_size - num_valid, state_dim).fill_(0)
+                zeros = Variable(zeros)
                 new_states.append(torch.cat([state, zeros], 1))
             final_states = new_states
 
@@ -145,10 +146,11 @@ class ElmoLstm(_EncoderBase):
         # the RNN did not need to process them. We add them back on in the form of zeros here.
         sequence_length_difference = total_sequence_length - returned_timesteps
         if sequence_length_difference > 0:
-            zeros = stacked_sequence_output.new_zeros(num_layers,
-                                                      batch_size,
-                                                      sequence_length_difference,
-                                                      stacked_sequence_output[0].size(-1))
+            zeros = stacked_sequence_output.data.new(num_layers,
+                                                     batch_size,
+                                                     sequence_length_difference,
+                                                     stacked_sequence_output[0].size(-1)).fill_(0)
+            zeros = Variable(zeros)
             stacked_sequence_output = torch.cat([stacked_sequence_output, zeros], 2)
 
         self._update_states(final_states, restoration_indices)

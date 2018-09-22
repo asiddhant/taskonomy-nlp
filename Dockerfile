@@ -56,6 +56,7 @@ RUN ./scripts/build_demo.py
 
 COPY scripts/ scripts/
 COPY allennlp/ allennlp/
+COPY tests/ tests/
 COPY pytest.ini pytest.ini
 COPY .pylintrc .pylintrc
 COPY tutorials/ tutorials/
