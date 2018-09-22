@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from overrides import overrides
 
 from allennlp.common.util import get_spacy_model
@@ -54,12 +56,15 @@ class CorefPredictor(Predictor):
         return self.predict_json({"document" : document})
 
     @overrides
-    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
+    def _json_to_instance(self, json_dict: JsonDict) -> Tuple[Instance, JsonDict]:
         """
         Expects JSON that looks like ``{"document": "string of document text"}``
         """
         document = json_dict["document"]
         spacy_document = self._spacy(document)
         sentences = [[token.text for token in sentence] for sentence in spacy_document.sents]
+        flattened_sentences = [word for sentence in sentences for word in sentence]
+
+        results_dict: JsonDict = {"document": flattened_sentences}
         instance = self._dataset_reader.text_to_instance(sentences)
-        return instance
+        return instance, results_dict

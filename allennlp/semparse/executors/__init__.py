@@ -1,1 +1,0 @@
-from allennlp.semparse.executors.wikitables_sempre_executor import WikiTablesSempreExecutor

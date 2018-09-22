@@ -2,7 +2,7 @@
 Helper functions for archiving models and restoring archived models.
 """
 
-from typing import NamedTuple, Dict, Any
+from typing import NamedTuple, Dict
 import json
 import logging
 import os
@@ -10,8 +10,10 @@ import tempfile
 import tarfile
 import shutil
 
+import pyhocon
+
+from allennlp.common import Params
 from allennlp.common.file_utils import cached_path
-from allennlp.common.params import Params, unflatten, with_fallback, parse_overrides
 from allennlp.models.model import Model, _DEFAULT_WEIGHTS
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -22,7 +24,7 @@ Archive = NamedTuple("Archive", [("model", Model), ("config", Params)])
 # We archive a model by creating a tar.gz file with its weights, config, and vocabulary.
 #
 # We also may include other arbitrary files in the archive. In this case we store
-# the mapping { flattened_path -> filename } in ``files_to_archive.json`` and the files
+# the mapping { hocon_path -> filename } in ``files_to_archive.json`` and the files
 # themselves under the path ``fta/`` .
 #
 # These constants are the *known names* under which we archive them.
@@ -45,9 +47,8 @@ def archive_model(serialization_dir: str,
     weights: ``str``, optional (default=_DEFAULT_WEIGHTS)
         Which weights file to include in the archive. The default is ``best.th``.
     files_to_archive: ``Dict[str, str]``, optional (default=None)
-        A mapping {flattened_key -> filename} of supplementary files to include
-        in the archive. That is, if you wanted to include ``params['model']['weights']``
-        then you would specify the key as `"model.weights"`.
+        A mapping {hocon_key -> filename} of supplementary files to include
+        in the archive.
     """
     weights_file = os.path.join(serialization_dir, weights)
     if not os.path.exists(weights_file):
@@ -76,7 +77,7 @@ def archive_model(serialization_dir: str,
 
         # If there are supplemental files to archive:
         if files_to_archive:
-            # Archive the { flattened_key -> original_filename } mapping.
+            # Archive the { hocon_key -> original_filename } mapping.
             archive.add(fta_filename, arcname=_FTA_NAME)
             # And add each requested file to the archive.
             for key, filename in files_to_archive.items():
@@ -99,7 +100,7 @@ def load_archive(archive_file: str,
         If `cuda_device` is >= 0, the model will be loaded onto the
         corresponding GPU. Otherwise it will be loaded onto the CPU.
     overrides: ``str``, optional (default = "")
-        JSON overrides to apply to the unarchived ``Params`` object.
+        HOCON overrides to apply to the unarchived ``Params`` object.
     """
     # redirect to the cache, if necessary
     resolved_archive_file = cached_path(archive_file)
@@ -128,14 +129,14 @@ def load_archive(archive_file: str,
             files_to_archive = json.loads(fta_file.read())
 
         # Add these replacements to overrides
-        replacements_dict: Dict[str, Any] = {}
+        replacement_hocon = pyhocon.ConfigTree(root=True)
         for key, _ in files_to_archive.items():
             replacement_filename = os.path.join(serialization_dir, f"fta/{key}")
-            replacements_dict[key] = replacement_filename
+            replacement_hocon.put(key, replacement_filename)
 
-        overrides_dict = parse_overrides(overrides)
-        combined_dict = with_fallback(preferred=unflatten(replacements_dict), fallback=overrides_dict)
-        overrides = json.dumps(combined_dict)
+        overrides_hocon = pyhocon.ConfigFactory.parse_string(overrides)
+        combined_hocon = replacement_hocon.with_fallback(overrides_hocon)
+        overrides = json.dumps(combined_hocon)
 
     # Load config
     config = Params.from_file(os.path.join(serialization_dir, CONFIG_NAME), overrides)

@@ -1,4 +1,5 @@
 import torch
+from allennlp.common.params import Params
 
 from allennlp.common.registrable import Registrable
 
@@ -22,3 +23,8 @@ class MatrixAttention(torch.nn.Module, Registrable):
                 matrix_1: torch.Tensor,
                 matrix_2: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+
+    @classmethod
+    def from_params(cls, params: Params) -> 'MatrixAttention':
+        clazz = cls.by_name(params.pop_choice("type", cls.list_available()))
+        return clazz.from_params(params)

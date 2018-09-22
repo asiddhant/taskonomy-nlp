@@ -1,3 +1,4 @@
+from typing import Tuple
 from overrides import overrides
 
 from allennlp.common.util import JsonDict
@@ -14,9 +15,9 @@ class SimpleSeq2SeqPredictor(Predictor):
         return self.predict_json({"source" : source})
 
     @overrides
-    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
+    def _json_to_instance(self, json_dict: JsonDict) -> Tuple[Instance, JsonDict]:
         """
         Expects JSON that looks like ``{"source": "..."}``.
         """
         source = json_dict["source"]
-        return self._dataset_reader.text_to_instance(source)
+        return self._dataset_reader.text_to_instance(source), {}

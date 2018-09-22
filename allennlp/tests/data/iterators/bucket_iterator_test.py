@@ -11,7 +11,6 @@ class TestBucketIterator(IteratorTest):
     # pylint: disable=protected-access
     def test_create_batches_groups_correctly(self):
         iterator = BucketIterator(batch_size=2, padding_noise=0, sorting_keys=[('text', 'num_tokens')])
-        iterator.index_with(self.vocab)
         batches = list(iterator._create_batches(self.instances, shuffle=False))
         grouped_instances = [batch.instances for batch in batches]
         assert grouped_instances == [[self.instances[4], self.instances[2]],
@@ -27,7 +26,6 @@ class TestBucketIterator(IteratorTest):
                                   padding_noise=0,
                                   sorting_keys=[('text', 'num_tokens')],
                                   max_instances_in_memory=3)
-        iterator.index_with(self.vocab)
         for test_instances in (self.instances, self.lazy_instances):
             batches = list(iterator._create_batches(test_instances, shuffle=False))
             grouped_instances = [batch.instances for batch in batches]
@@ -40,7 +38,6 @@ class TestBucketIterator(IteratorTest):
                                   padding_noise=0,
                                   sorting_keys=[('text', 'num_tokens')],
                                   biggest_batch_first=True)
-        iterator.index_with(self.vocab)
         batches = list(iterator._create_batches(self.instances, shuffle=False))
         grouped_instances = [batch.instances for batch in batches]
         assert grouped_instances == [[self.instances[3]],
@@ -75,25 +72,3 @@ class TestBucketIterator(IteratorTest):
         assert iterator._padding_noise == 0.5
         assert iterator._biggest_batch_first
         assert iterator._batch_size == 100
-
-    def test_bucket_iterator_maximum_samples_per_batch(self):
-        iterator = BucketIterator(
-                batch_size=3, padding_noise=0,
-                sorting_keys=[('text', 'num_tokens')],
-                maximum_samples_per_batch=['num_tokens', 9]
-        )
-        iterator.index_with(self.vocab)
-        batches = list(iterator._create_batches(self.instances, shuffle=False))
-
-        # ensure all instances are in a batch
-        grouped_instances = [batch.instances for batch in batches]
-        num_instances = sum(len(group) for group in grouped_instances)
-        assert num_instances == len(self.instances)
-
-        # ensure all batches are sufficiently small
-        for batch in batches:
-            batch_sequence_length = max(
-                    [instance.get_padding_lengths()['text']['num_tokens']
-                     for instance in batch.instances]
-            )
-            assert batch_sequence_length * len(batch.instances) <= 9

@@ -3,12 +3,10 @@ import logging
 import os
 import pathlib
 import shutil
-import tempfile
 from unittest import TestCase
 
 from allennlp.common.checks import log_pytorch_version_info
 
-TEST_DIR = tempfile.mkdtemp(prefix="allennlp_tests")
 
 class AllenNlpTestCase(TestCase):  # pylint: disable=too-many-public-methods
     """
@@ -33,7 +31,7 @@ class AllenNlpTestCase(TestCase):  # pylint: disable=too-many-public-methods
         logging.getLogger('urllib3.connectionpool').disabled = True
         log_pytorch_version_info()
 
-        self.TEST_DIR = pathlib.Path(TEST_DIR)
+        self.TEST_DIR = pathlib.Path("/tmp/allennlp_tests/")
 
         os.makedirs(self.TEST_DIR, exist_ok=True)
 

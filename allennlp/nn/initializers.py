@@ -24,7 +24,7 @@ The available initialization functions are
 import logging
 import re
 import math
-from typing import Callable, List, Tuple, Type, Iterable
+from typing import Callable, List, Tuple, Type
 import itertools
 
 import torch
@@ -52,11 +52,8 @@ class Initializer(Registrable):
         """
         raise NotImplementedError
 
-    # Requires custom from_params because of possibility of Params being a str.
     @classmethod
-    def from_params(cls, params: Params) -> 'Initializer':   # type: ignore
-        # pylint: disable=arguments-differ
-
+    def from_params(cls, params: Params):
         # Just a string - corresponds to the name of an initializer.
         if isinstance(params, str):
             return cls.by_name(params)()
@@ -148,19 +145,6 @@ def block_orthogonal(tensor: torch.Tensor,
         data[block_slice] = torch.nn.init.orthogonal_(tensor[block_slice].contiguous(), gain=gain)
 
 
-def zero(tensor: torch.Tensor) -> None:
-    return tensor.data.zero_()
-
-def lstm_hidden_bias(tensor: torch.Tensor) -> None:
-    """
-    Initialize the biases of the forget gate to 1, and all other gates to 0,
-    following Jozefowicz et al., An Empirical Exploration of Recurrent Network Architectures
-    """
-    # gates are (b_hi|b_hf|b_hg|b_ho) of shape (4*hidden_size)
-    tensor.data.zero_()
-    hidden_size = tensor.shape[0] // 4
-    tensor.data[hidden_size:(2 * hidden_size)] = 1.0
-
 def _initializer_wrapper(init_function: Callable[..., None]) -> Type[Initializer]:
     class Init(Initializer):
         _initializer_wrapper = True
@@ -173,7 +157,7 @@ def _initializer_wrapper(init_function: Callable[..., None]) -> Type[Initializer
         def __repr__(self):
             return 'Init: %s, with params: %s' % (self._init_function, self._kwargs)
         @classmethod
-        def from_params(cls, params: Params):  # type: ignore
+        def from_params(cls, params: Params):
             return cls(**params.as_dict())
     return Init
 
@@ -192,11 +176,8 @@ Registrable._registry[Initializer] = {  # pylint: disable=protected-access
         "sparse": _initializer_wrapper(torch.nn.init.sparse_),
         "eye": _initializer_wrapper(torch.nn.init.eye_),
         "block_orthogonal": _initializer_wrapper(block_orthogonal),
-        "uniform_unit_scaling": _initializer_wrapper(uniform_unit_scaling),
-        "zero": _initializer_wrapper(zero),
-        "lstm_hidden_bias": _initializer_wrapper(lstm_hidden_bias),
+        "uniform_unit_scaling": _initializer_wrapper(uniform_unit_scaling)
 }
-
 
 
 class InitializerApplicator:
@@ -205,22 +186,16 @@ class InitializerApplicator:
     explicitly matching a regex will not be initialized, instead using whatever the default
     initialization was in the module's code.
     """
-    def __init__(self,
-                 initializers: List[Tuple[str, Initializer]] = None,
-                 prevent_regexes: List[str] = None) -> None:
+    def __init__(self, initializers: List[Tuple[str, Initializer]] = None) -> None:
         """
         Parameters
         ----------
         initializers : ``List[Tuple[str, Initializer]]``, optional (default = [])
             A list mapping parameter regexes to initializers.  We will check each parameter against
             each regex in turn, and apply the initializer paired with the first matching regex, if
-            any. If "prevent" is assigned to any regex, then it will override and prevent the matched
-            parameters to be initialzed.
+            any.
         """
         self._initializers = initializers or []
-        self._prevent_regex = None
-        if prevent_regexes:
-            self._prevent_regex = "(" + ")|(".join(prevent_regexes) + ")"
 
     def __call__(self, module: torch.nn.Module) -> None:
         """
@@ -238,8 +213,7 @@ class InitializerApplicator:
         # Store which initialisers were applied to which parameters.
         for name, parameter in module.named_parameters():
             for initializer_regex, initializer in self._initializers:
-                allow = self._prevent_regex is None or not bool(re.search(self._prevent_regex, name))
-                if allow and re.search(initializer_regex, name):
+                if re.search(initializer_regex, name):
                     logger.info("Initializing %s using %s intitializer", name, initializer_regex)
                     initializer(parameter)
                     unused_regexes.discard(initializer_regex)
@@ -256,7 +230,7 @@ class InitializerApplicator:
             logger.info("   %s", name)
 
     @classmethod
-    def from_params(cls, params: Iterable[Tuple[str, Params]] = ()) -> "InitializerApplicator":  # type: ignore
+    def from_params(cls, params: List[Tuple[str, Params]]) -> "InitializerApplicator":
         """
         Converts a Params object into an InitializerApplicator. The json should
         be formatted as follows::
@@ -270,7 +244,6 @@ class InitializerApplicator:
                     }
                 ],
                 ["parameter_regex_match2", "uniform"]
-                ["prevent_init_regex", "prevent"]
             ]
 
         where the first item in each tuple is the regex that matches to parameters, and the second
@@ -279,17 +252,11 @@ class InitializerApplicator:
         or dictionaries, in which case they must contain the "type" key, corresponding to the name
         of an initializer.  In addition, they may contain auxiliary named parameters which will be
         fed to the initializer itself. To determine valid auxiliary parameters, please refer to the
-        torch.nn.init documentation. Only "prevent" is a special type which does not have corresponding
-        initializer. Any parameter matching its corresponding regex will be overriden to NOT initialize.
+        torch.nn.init documentation.
 
         Returns
         -------
         An InitializerApplicator containing the specified initializers.
         """
-        # pylint: disable=arguments-differ
-
-        is_prevent = lambda item: item == "prevent" or item == {"type": "prevent"}
-        prevent_regexes = [param[0] for param in params if is_prevent(param[1])]
-        params = [param for param in params if param[1] if not is_prevent(param[1])]
         initializers = [(name, Initializer.from_params(init_params)) for name, init_params in params]
-        return InitializerApplicator(initializers, prevent_regexes)
+        return InitializerApplicator(initializers)

@@ -33,8 +33,7 @@ class SemanticRoleLabelerTest(ModelTestCase):
         output_dict = self.model(**training_tensors)
         class_probs = output_dict['class_probabilities'][0].data.numpy()
         numpy.testing.assert_almost_equal(numpy.sum(class_probs, -1),
-                                          numpy.ones(class_probs.shape[0]),
-                                          decimal=6)
+                                          numpy.ones(class_probs.shape[0]))
 
     def test_decode_runs_correctly(self):
         training_tensors = self.dataset.as_tensor_dict()
@@ -71,9 +70,16 @@ class SemanticRoleLabelerTest(ModelTestCase):
         assert exit_code == 0
 
     def test_mismatching_dimensions_throws_configuration_error(self):
+        initial_working_dir = os.getcwd()
+        # Change directory to module root.
+        os.chdir(self.MODULE_ROOT)
+
         params = Params.from_file(self.param_file)
         # Make the phrase layer wrong - it should be 150 to match
         # the embedding + binary feature dimensions.
         params["model"]["encoder"]["input_size"] = 10
         with pytest.raises(ConfigurationError):
-            Model.from_params(vocab=self.vocab, params=params.pop("model"))
+            Model.from_params(self.vocab, params.pop("model"))
+
+        # Change directory back to what it was initially
+        os.chdir(initial_working_dir)

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import json
 
 from allennlp.common import Registrable
@@ -10,17 +10,14 @@ from allennlp.models.archival import Archive, load_archive
 
 # a mapping from model `type` to the default Predictor for that type
 DEFAULT_PREDICTORS = {
-        'biaffine_parser': 'biaffine-dependency-parser',
+        'srl': 'semantic-role-labeling',
+        'decomposable_attention': 'textual-entailment',
         'bidaf': 'machine-comprehension',
         'bidaf-ensemble': 'machine-comprehension',
-        'constituency_parser': 'constituency-parser',
-        'coref': 'coreference-resolution',
-        'crf_tagger': 'sentence-tagger',
-        'decomposable_attention': 'textual-entailment',
-        'dialog_qa': 'dialog_qa',
-        'event2mind': 'event2mind',
         'simple_tagger': 'sentence-tagger',
-        'srl': 'semantic-role-labeling'
+        'crf_tagger': 'sentence-tagger',
+        'coref': 'coreference-resolution',
+        'constituency_parser': 'constituency-parser',
 }
 
 class Predictor(Registrable):
@@ -47,14 +44,12 @@ class Predictor(Registrable):
         return json.dumps(outputs) + "\n"
 
     def predict_json(self, inputs: JsonDict) -> JsonDict:
-        instance = self._json_to_instance(inputs)
-        return self.predict_instance(instance)
-
-    def predict_instance(self, instance: Instance) -> JsonDict:
+        instance, return_dict = self._json_to_instance(inputs)
         outputs = self._model.forward_on_instance(instance)
-        return sanitize(outputs)
+        return_dict.update(outputs)
+        return sanitize(return_dict)
 
-    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
+    def _json_to_instance(self, json_dict: JsonDict) -> Tuple[Instance, JsonDict]:
         """
         Converts a JSON object into an :class:`~allennlp.data.instance.Instance`
         and a ``JsonDict`` of information which the ``Predictor`` should pass through,
@@ -63,14 +58,13 @@ class Predictor(Registrable):
         raise NotImplementedError
 
     def predict_batch_json(self, inputs: List[JsonDict]) -> List[JsonDict]:
-        instances = self._batch_json_to_instances(inputs)
-        return self.predict_batch_instance(instances)
-
-    def predict_batch_instance(self, instances: List[Instance]) -> List[JsonDict]:
+        instances, return_dicts = zip(*self._batch_json_to_instances(inputs))
         outputs = self._model.forward_on_instances(instances)
-        return sanitize(outputs)
+        for output, return_dict in zip(outputs, return_dicts):
+            return_dict.update(output)
+        return sanitize(return_dicts)
 
-    def _batch_json_to_instances(self, json_dicts: List[JsonDict]) -> List[Instance]:
+    def _batch_json_to_instances(self, json_dicts: List[JsonDict]) -> List[Tuple[Instance, JsonDict]]:
         """
         Converts a list of JSON objects into a list of :class:`~allennlp.data.instance.Instance`s.
         By default, this expects that a "batch" consists of a list of JSON blobs which would
@@ -109,8 +103,7 @@ class Predictor(Registrable):
         that is, from the result of training a model. Optionally specify which `Predictor`
         subclass; otherwise, the default one for the model will be used.
         """
-        # Duplicate the config so that the config inside the archive doesn't get consumed
-        config = archive.config.duplicate()
+        config = archive.config
 
         if not predictor_name:
             model_type = config.get("model").get("type")

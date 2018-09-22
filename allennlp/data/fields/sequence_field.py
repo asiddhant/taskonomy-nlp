@@ -13,6 +13,3 @@ class SequenceField(Field[DataArray]):
         How many elements are there in this sequence?
         """
         raise NotImplementedError
-
-    def empty_field(self) -> 'SequenceField':
-        raise NotImplementedError

@@ -14,7 +14,6 @@ allennlp.semparse
 .. toctree::
 
    allennlp.semparse.contexts
-   allennlp.semparse.executors
    allennlp.semparse.type_declarations
    allennlp.semparse.worlds
    allennlp.semparse.util

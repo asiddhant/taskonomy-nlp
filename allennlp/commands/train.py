@@ -6,10 +6,11 @@ which to write the results.
 .. code-block:: bash
 
    $ allennlp train --help
-   usage: allennlp train [-h] -s SERIALIZATION_DIR [-r] [-o OVERRIDES]
-                         [--file-friendly-logging]
-                         [--include-package INCLUDE_PACKAGE]
-                         param_path
+   usage: allennlp train [-h] -s SERIALIZATION_DIR
+                              [-o OVERRIDES]
+                              [--include-package INCLUDE_PACKAGE]
+                              [--file-friendly-logging]
+                              param_path
 
    Train the specified model on the specified dataset.
 
@@ -21,9 +22,8 @@ which to write the results.
    -h, --help            show this help message and exit
    -s SERIALIZATION_DIR, --serialization-dir SERIALIZATION_DIR
                            directory in which to save the model and its logs
-   -r, --recover         recover training from the state in serialization_dir
    -o OVERRIDES, --overrides OVERRIDES
-                           a JSON structure used to override the experiment
+                           a HOCON structure used to override the experiment
                            configuration
    --include-package INCLUDE_PACKAGE
                            additional packages to include
@@ -33,9 +33,10 @@ which to write the results.
 """
 from typing import Dict, Iterable
 import argparse
+import json
 import logging
 import os
-import re
+from copy import deepcopy
 
 import torch
 
@@ -43,8 +44,7 @@ from allennlp.commands.evaluate import evaluate
 from allennlp.commands.subcommand import Subcommand
 from allennlp.common.checks import ConfigurationError, check_for_gpu
 from allennlp.common import Params
-from allennlp.common.util import prepare_environment, prepare_global_logging, \
-                                 get_frozen_and_tunable_parameter_names, dump_metrics
+from allennlp.common.util import prepare_environment, prepare_global_logging
 from allennlp.data import Vocabulary
 from allennlp.data.instance import Instance
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
@@ -79,7 +79,7 @@ class Train(Subcommand):
         subparser.add_argument('-o', '--overrides',
                                type=str,
                                default="",
-                               help='a JSON structure used to override the experiment configuration')
+                               help='a HOCON structure used to override the experiment configuration')
 
         subparser.add_argument('--file-friendly-logging',
                                action='store_true',
@@ -117,7 +117,7 @@ def train_model_from_file(parameter_filename: str,
         The directory in which to save results and logs. We just pass this along to
         :func:`train_model`.
     overrides : ``str``
-        A JSON string that we will use to override values in the input parameter file.
+        A HOCON string that we will use to override values in the input parameter file.
     file_friendly_logging : ``bool``, optional (default=False)
         If ``True``, we make our output more friendly to saved model files.  We just pass this
         along to :func:`train_model`.
@@ -253,9 +253,11 @@ def train_model(params: Params,
     create_serialization_dir(params, serialization_dir, recover)
     prepare_global_logging(serialization_dir, file_friendly_logging)
 
-    check_for_gpu(params.get('trainer').get('cuda_device', -1))
+    check_for_gpu(params.params.get('trainer').get('cuda_device', -1))
 
-    params.to_file(os.path.join(serialization_dir, CONFIG_NAME))
+    serialization_params = deepcopy(params).as_dict(quiet=True)
+    with open(os.path.join(serialization_dir, CONFIG_NAME), "w") as param_file:
+        json.dump(serialization_params, param_file, indent=4)
 
     all_datasets = datasets_from_params(params)
     datasets_for_vocab_creation = set(params.pop("datasets_for_vocab_creation", all_datasets))
@@ -264,53 +266,28 @@ def train_model(params: Params,
         if dataset not in all_datasets:
             raise ConfigurationError(f"invalid 'dataset_for_vocab_creation' {dataset}")
 
-    logger.info("From dataset instances, %s will be considered for vocabulary creation.",
-                ", ".join(datasets_for_vocab_creation))
-    vocab = Vocabulary.from_params(
-            params.pop("vocabulary", {}),
-            (instance for key, dataset in all_datasets.items()
-             for instance in dataset
-             if key in datasets_for_vocab_creation)
-    )
-
+    logger.info("Creating a vocabulary using %s data.", ", ".join(datasets_for_vocab_creation))
+    vocab = Vocabulary.from_params(params.pop("vocabulary", {}),
+                                   (instance for key, dataset in all_datasets.items()
+                                    for instance in dataset
+                                    if key in datasets_for_vocab_creation))
     vocab.save_to_files(os.path.join(serialization_dir, "vocabulary"))
 
-    model = Model.from_params(vocab=vocab, params=params.pop('model'))
+    model = Model.from_params(vocab, params.pop('model'))
     iterator = DataIterator.from_params(params.pop("iterator"))
     iterator.index_with(vocab)
-    validation_iterator_params = params.pop("validation_iterator", None)
-    if validation_iterator_params:
-        validation_iterator = DataIterator.from_params(validation_iterator_params)
-        validation_iterator.index_with(vocab)
-    else:
-        validation_iterator = None
 
     train_data = all_datasets['train']
     validation_data = all_datasets.get('validation')
     test_data = all_datasets.get('test')
 
     trainer_params = params.pop("trainer")
-    no_grad_regexes = trainer_params.pop("no_grad", ())
-    for name, parameter in model.named_parameters():
-        if any(re.search(regex, name) for regex in no_grad_regexes):
-            parameter.requires_grad_(False)
-
-    frozen_parameter_names, tunable_parameter_names = \
-                   get_frozen_and_tunable_parameter_names(model)
-    logger.info("Following parameters are Frozen  (without gradient):")
-    for name in frozen_parameter_names:
-        logger.info(name)
-    logger.info("Following parameters are Tunable (with gradient):")
-    for name in tunable_parameter_names:
-        logger.info(name)
-
     trainer = Trainer.from_params(model,
                                   serialization_dir,
                                   iterator,
                                   train_data,
                                   validation_data,
-                                  trainer_params,
-                                  validation_iterator=validation_iterator)
+                                  trainer_params)
 
     evaluate_on_test = params.pop_bool("evaluate_on_test", False)
     params.assert_empty('base train command')
@@ -336,10 +313,7 @@ def train_model(params: Params,
 
     if test_data and evaluate_on_test:
         logger.info("The model will be evaluated using the best epoch weights.")
-        test_metrics = evaluate(
-                best_model, test_data, validation_iterator or iterator,
-                cuda_device=trainer._cuda_devices[0] # pylint: disable=protected-access
-        )
+        test_metrics = evaluate(best_model, test_data, iterator, cuda_device=trainer._cuda_devices[0])  # pylint: disable=protected-access
         for key, value in test_metrics.items():
             metrics["test_" + key] = value
 
@@ -347,6 +321,9 @@ def train_model(params: Params,
         logger.info("To evaluate on the test set after training, pass the "
                     "'evaluate_on_test' flag, or use the 'allennlp evaluate' command.")
 
-    dump_metrics(os.path.join(serialization_dir, "metrics.json"), metrics, log=True)
+    metrics_json = json.dumps(metrics, indent=2)
+    with open(os.path.join(serialization_dir, "metrics.json"), "w") as metrics_file:
+        metrics_file.write(metrics_json)
+    logger.info("Metrics: %s", metrics_json)
 
     return best_model

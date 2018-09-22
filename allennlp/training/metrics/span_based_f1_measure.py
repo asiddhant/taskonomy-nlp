@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Callable
+from typing import Dict, List, Optional, Set
 from collections import defaultdict
 
 import torch
@@ -10,13 +10,8 @@ from allennlp.training.metrics.metric import Metric
 from allennlp.data.dataset_readers.dataset_utils.span_utils import (
         bio_tags_to_spans,
         bioul_tags_to_spans,
-        iob1_tags_to_spans,
-        bmes_tags_to_spans,
         TypedStringSpan
 )
-
-
-TAGS_TO_SPANS_FUNCTION_TYPE = Callable[[List[str], Optional[List[str]]], List[TypedStringSpan]]
 
 
 @Metric.register("span_f1")
@@ -29,17 +24,13 @@ class SpanBasedF1Measure(Metric):
     is not exactly the same as the perl script used to evaluate the CONLL 2005
     data - particularly, it does not consider continuations or reference spans
     as constituents of the original span. However, it is a close proxy, which
-    can be helpful for judging model peformance during training. This metric
-    works properly when the spans are unlabeled (i.e., your labels are
-    simply "B", "I", "O" if using the "BIO" label encoding).
-
+    can be helpful for judging model peformance during training.
     """
     def __init__(self,
                  vocabulary: Vocabulary,
                  tag_namespace: str = "tags",
                  ignore_classes: List[str] = None,
-                 label_encoding: Optional[str] = "BIO",
-                 tags_to_spans_function: Optional[TAGS_TO_SPANS_FUNCTION_TYPE] = None) -> None:
+                 label_encoding: str = "BIO") -> None:
         """
         Parameters
         ----------
@@ -63,26 +54,12 @@ class SpanBasedF1Measure(Metric):
             spans in a BIO tagging scheme which are typically not included.
         label_encoding : ``str``, optional (default = "BIO")
             The encoding used to specify label span endpoints in the sequence.
-            Valid options are "BIO", "IOB1", "BIOUL" or "BMES".
-        tags_to_spans_function: ``Callable``, optional (default = ``None``)
-            If ``label_encoding`` is ``None``, ``tags_to_spans_function`` will be
-            used to generate spans.
+            Valid options are "BIO" or "BIOUL".
         """
-        if label_encoding and tags_to_spans_function:
-            raise ConfigurationError(
-                    'Both label_encoding and tags_to_spans_function are provided. '
-                    'Set "label_encoding=None" explicitly to enable tags_to_spans_function.'
-                    )
-        if label_encoding:
-            if label_encoding not in ["BIO", "IOB1", "BIOUL", "BMES"]:
-                raise ConfigurationError("Unknown label encoding - expected 'BIO', 'IOB1', 'BIOUL', 'BMES'.")
-        elif tags_to_spans_function is None:
-            raise ConfigurationError(
-                    'At least one of the (label_encoding, tags_to_spans_function) should be provided.'
-                    )
+        if label_encoding not in ["BIO", "BIOUL"]:
+            raise ConfigurationError("Unknown label encoding - expected 'BIO' or 'BIOUL'.")
 
         self._label_encoding = label_encoding
-        self._tags_to_spans_function = tags_to_spans_function
         self._label_vocabulary = vocabulary.get_index_to_token_vocabulary(tag_namespace)
         self._ignore_classes: List[str] = ignore_classes or []
 
@@ -153,22 +130,12 @@ class SpanBasedF1Measure(Metric):
             gold_string_labels = [self._label_vocabulary[label_id]
                                   for label_id in sequence_gold_label[:length].tolist()]
 
-            tags_to_spans_function = None
-            # `label_encoding` is empty and `tags_to_spans_function` is provided.
-            if self._label_encoding is None and self._tags_to_spans_function:
-                tags_to_spans_function = self._tags_to_spans_function
-            # Search by `label_encoding`.
-            elif self._label_encoding == "BIO":
-                tags_to_spans_function = bio_tags_to_spans
-            elif self._label_encoding == "IOB1":
-                tags_to_spans_function = iob1_tags_to_spans
+            if self._label_encoding == "BIO":
+                predicted_spans = bio_tags_to_spans(predicted_string_labels, self._ignore_classes)
+                gold_spans = bio_tags_to_spans(gold_string_labels, self._ignore_classes)
             elif self._label_encoding == "BIOUL":
-                tags_to_spans_function = bioul_tags_to_spans
-            elif self._label_encoding == "BMES":
-                tags_to_spans_function = bmes_tags_to_spans
-
-            predicted_spans = tags_to_spans_function(predicted_string_labels, self._ignore_classes)
-            gold_spans = tags_to_spans_function(gold_string_labels, self._ignore_classes)
+                predicted_spans = bioul_tags_to_spans(predicted_string_labels, self._ignore_classes)
+                gold_spans = bioul_tags_to_spans(gold_string_labels, self._ignore_classes)
 
             predicted_spans = self._handle_continued_spans(predicted_spans)
             gold_spans = self._handle_continued_spans(gold_spans)

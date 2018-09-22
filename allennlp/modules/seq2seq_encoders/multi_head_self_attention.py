@@ -2,8 +2,9 @@ from overrides import overrides
 import torch
 from torch.nn import Dropout, Linear
 
-from allennlp.nn.util import masked_softmax, weighted_sum
+from allennlp.nn.util import last_dim_softmax, weighted_sum
 from allennlp.modules.seq2seq_encoders.seq2seq_encoder import Seq2SeqEncoder
+from allennlp.common.params import Params
 
 
 @Seq2SeqEncoder.register("multi_head_self_attention")
@@ -129,7 +130,7 @@ class MultiHeadSelfAttention(Seq2SeqEncoder):
 
         # shape (num_heads * batch_size, timesteps, timesteps)
         # Normalise the distributions, using the same mask for all heads.
-        attention = masked_softmax(scaled_similarities, mask.repeat(1, num_heads).view(batch_size * num_heads, timesteps))
+        attention = last_dim_softmax(scaled_similarities, mask.repeat(1, num_heads).view(batch_size * num_heads, timesteps))
         attention = self._attention_dropout(attention)
 
         # Take a weighted sum of the values with respect to the attention
@@ -149,3 +150,19 @@ class MultiHeadSelfAttention(Seq2SeqEncoder):
         # shape (batch_size, timesteps, input_size)
         outputs = self._output_projection(outputs)
         return outputs
+
+    @classmethod
+    def from_params(cls, params: Params) -> 'MultiHeadSelfAttention':
+        num_heads = params.pop_int('num_heads')
+        input_dim = params.pop_int('input_dim')
+        attention_dim = params.pop_int('attention_dim')
+        values_dim = params.pop_int('values_dim')
+        output_projection_dim = params.pop_int('output_projection_dim', None)
+        attention_dropout_prob = params.pop_float('attention_dropout_prob', 0.1)
+        params.assert_empty(cls.__name__)
+        return cls(num_heads=num_heads,
+                   input_dim=input_dim,
+                   attention_dim=attention_dim,
+                   values_dim=values_dim,
+                   output_projection_dim=output_projection_dim,
+                   attention_dropout_prob=attention_dropout_prob)

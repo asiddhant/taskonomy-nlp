@@ -104,8 +104,6 @@ class World:
         self._logic_parser = types.DynamicTypeLogicParser(constant_type_prefixes=type_prefixes,
                                                           type_signatures=self.global_type_signatures)
         self._right_side_indexed_actions: Dict[str, List[Tuple[str, str]]] = None
-        # Caching this to avoid recompting it every time `get_valid_actions` is called.
-        self._valid_actions: Dict[str, List[str]] = None
 
     def get_name_mapping(self) -> Dict[str, str]:
         # Python 3.5 syntax for merging two dictionaries.
@@ -127,13 +125,11 @@ class World:
                 'lambda' in symbol)
 
     def get_valid_actions(self) -> Dict[str, List[str]]:
-        if not self._valid_actions:
-            self._valid_actions = types.get_valid_actions(self.get_name_mapping(),
-                                                          self.get_type_signatures(),
-                                                          self.get_basic_types(),
-                                                          valid_starting_types=self.get_valid_starting_types(),
-                                                          num_nested_lambdas=self._num_nested_lambdas)
-        return self._valid_actions
+        return types.get_valid_actions(self.get_name_mapping(),
+                                       self.get_type_signatures(),
+                                       self.get_basic_types(),
+                                       valid_starting_types=self.get_valid_starting_types(),
+                                       num_nested_lambdas=self._num_nested_lambdas)
 
     def get_paths_to_root(self,
                           action: str,

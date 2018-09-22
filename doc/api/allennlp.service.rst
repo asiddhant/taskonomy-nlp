@@ -7,6 +7,9 @@ via a REST API or similar.
 
 .. toctree::
 
+   allennlp.service.db
+   allennlp.service.permalinks
+   allennlp.service.server_flask
    allennlp.service.server_simple
    allennlp.service.config_explorer
 

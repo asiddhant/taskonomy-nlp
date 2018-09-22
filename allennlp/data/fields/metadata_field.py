@@ -32,7 +32,9 @@ class MetadataField(Field[DataArray]):
         return {}
 
     @overrides
-    def as_tensor(self, padding_lengths: Dict[str, int]) -> DataArray:
+    def as_tensor(self,
+                  padding_lengths: Dict[str, int],
+                  cuda_device: int = -1) -> DataArray:
         # pylint: disable=unused-argument
         return self.metadata  # type: ignore
 

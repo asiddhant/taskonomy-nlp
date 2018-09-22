@@ -48,7 +48,7 @@ def main(vocab_path: str,
     tokens = [tokens[0]] + ["<S>", "</S>"] + tokens[1:]
 
     indexer = ELMoTokenCharactersIndexer()
-    indices = indexer.tokens_to_indices([Token(token) for token in tokens], Vocabulary(), "indices")["indices"]
+    indices = [indexer.token_to_indices(Token(token), Vocabulary()) for token in tokens]
     sentences = []
     for k in range((len(indices) // 50) + 1):
         sentences.append(indexer.pad_token_sequence(indices[(k * 50):((k + 1) * 50)],

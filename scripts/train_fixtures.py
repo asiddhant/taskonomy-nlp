@@ -12,8 +12,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(os.path.join(__file__, os.par
 from allennlp.commands.test_install import _get_module_root
 from allennlp.commands.train import train_model_from_file, train_model
 from allennlp.common import Params
-from allennlp.training.metrics import EvalbBracketingScorer
-
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -21,6 +19,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 def train_fixture(config_prefix: str) -> None:
     config_file = config_prefix + 'experiment.json'
     serialization_dir = config_prefix + 'serialization'
+
     # Train model doesn't like it if we have incomplete serialization
     # directories, so remove them if they exist.
     if os.path.exists(serialization_dir):
@@ -53,16 +52,14 @@ def train_fixture_gpu(config_prefix: str) -> None:
 
 if __name__ == "__main__":
     initial_working_dir = os.getcwd()
-    module_root = _get_module_root().parent
+    module_root = _get_module_root()
     logger.info("Changing directory to %s", module_root)
     os.chdir(module_root)
     if len(sys.argv) >= 2 and sys.argv[1].lower() == "gpu":
-        train_fixture_gpu("allennlp/tests/fixtures/srl/")
+        train_fixture_gpu("tests/fixtures/srl/")
     else:
         models = [
-                'biaffine_dependency_parser',
                 'bidaf',
-                'dialog_qa',
                 'constituency_parser',
                 'coref',
                 'decomposable_attention',
@@ -71,10 +68,8 @@ if __name__ == "__main__":
                 'semantic_parsing/nlvr_direct_semantic_parser',
                 'semantic_parsing/wikitables',
                 'srl',
-        ]
+                ]
         for model in models:
-            if model == 'constituency_parser':
-                EvalbBracketingScorer.compile_evalb()
-            train_fixture(f"allennlp/tests/fixtures/{model}/")
+            train_fixture(f"tests/fixtures/{model}/")
     logger.info("Changing directory back to %s", initial_working_dir)
     os.chdir(initial_working_dir)

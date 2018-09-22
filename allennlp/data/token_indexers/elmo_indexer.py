@@ -3,6 +3,7 @@ from typing import Dict, List
 from overrides import overrides
 
 from allennlp.common.checks import ConfigurationError
+from allennlp.common.params import Params
 from allennlp.common.util import pad_sequence_to_length
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.token_indexers.token_indexer import TokenIndexer
@@ -93,17 +94,12 @@ class ELMoTokenCharactersIndexer(TokenIndexer[List[int]]):
         pass
 
     @overrides
-    def tokens_to_indices(self,
-                          tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[List[int]]]:
+    def token_to_indices(self, token: Token, vocabulary: Vocabulary) -> List[int]:
         # pylint: disable=unused-argument
-        texts = [token.text for token in tokens]
-
-        if any(text is None for text in texts):
+        if token.text is None:
             raise ConfigurationError('ELMoTokenCharactersIndexer needs a tokenizer '
                                      'that retains text')
-        return {index_name: [ELMoCharacterMapper.convert_word_to_char_ids(text) for text in texts]}
+        return ELMoCharacterMapper.convert_word_to_char_ids(token.text)
 
     @overrides
     def get_padding_lengths(self, token: List[int]) -> Dict[str, int]:
@@ -120,10 +116,20 @@ class ELMoTokenCharactersIndexer(TokenIndexer[List[int]]):
 
     @overrides
     def pad_token_sequence(self,
-                           tokens: Dict[str, List[List[int]]],
-                           desired_num_tokens: Dict[str, int],
-                           padding_lengths: Dict[str, int]) -> Dict[str, List[List[int]]]:
+                           tokens: List[List[int]],
+                           desired_num_tokens: int,
+                           padding_lengths: Dict[str, int]) -> List[List[int]]:
         # pylint: disable=unused-argument
-        return {key: pad_sequence_to_length(val, desired_num_tokens[key],
-                                            default_value=self._default_value_for_padding)
-                for key, val in tokens.items()}
+        return pad_sequence_to_length(tokens, desired_num_tokens,
+                                      default_value=self._default_value_for_padding)
+
+    @classmethod
+    def from_params(cls, params: Params) -> 'ELMoTokenCharactersIndexer':
+        """
+        Parameters
+        ----------
+        namespace : ``str``, optional (default=``elmo_characters``)
+        """
+        namespace = params.pop('namespace', 'elmo_characters')
+        params.assert_empty(cls.__name__)
+        return cls(namespace=namespace)

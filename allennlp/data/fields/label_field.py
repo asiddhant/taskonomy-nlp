@@ -87,10 +87,12 @@ class LabelField(Field[torch.Tensor]):
         return {}
 
     @overrides
-    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
+    def as_tensor(self,
+                  padding_lengths: Dict[str, int],
+                  cuda_device: int = -1) -> torch.Tensor:
         # pylint: disable=unused-argument,not-callable
         tensor = torch.tensor(self._label_id, dtype=torch.long)
-        return tensor
+        return tensor if cuda_device == -1 else tensor.cuda(cuda_device)
 
     @overrides
     def empty_field(self):

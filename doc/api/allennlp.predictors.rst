@@ -9,18 +9,13 @@ allennlp.predictors
 * :ref:`Predictor<predictor>`
 * :ref:`BidafPredictor<bidaf>`
 * :ref:`DecomposableAttentionPredictor<decomposable-attention>`
-* :ref:`DialogQAPredictor<dialog_qa>`
 * :ref:`SemanticRoleLabelerPredictor<semantic-role-labeler>`
 * :ref:`SentenceTaggerPredictor<sentence-tagger>`
 * :ref:`CorefPredictor<coreference-resolution>`
 * :ref:`ConstituencyParserPredictor<constituency-parser>`
-* :ref:`BiaffineDependencyParserPredictor<biaffine-dependency-parser>`
 * :ref:`SimpleSeq2SeqPredictor<simple-seq2seq>`
 * :ref:`WikiTablesParserPredictor<wikitables-parser>`
 * :ref:`NlvrParserPredictor<nlvr-parser>`
-* :ref:`OpenIePredictor<open-information-extraction>`
-* :ref:`Event2MindPredictor<event2mind>`
-
 
 .. _predictor:
 .. automodule:: allennlp.predictors.predictor
@@ -36,12 +31,6 @@ allennlp.predictors
 
 .. _decomposable-attention:
 .. automodule:: allennlp.predictors.decomposable_attention
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. _dialog_qa:
-.. automodule:: allennlp.predictors.dialog_qa
    :members:
    :undoc-members:
    :show-inheritance:
@@ -84,24 +73,6 @@ allennlp.predictors
 
 .. _nlvr-parser:
 .. automodule:: allennlp.predictors.nlvr_parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. _biaffine-dependency-parser:
-.. automodule:: allennlp.predictors.biaffine_dependency_parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. _open-information-extraction:
-.. automodule:: allennlp.predictors.open_information_extraction
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. _event2mind:
-.. automodule:: allennlp.predictors.event2mind
    :members:
    :undoc-members:
    :show-inheritance:

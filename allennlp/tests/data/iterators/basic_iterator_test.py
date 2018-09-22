@@ -41,6 +41,7 @@ class IteratorTest(AllenNlpTestCase):
     def create_instance(self, str_tokens: List[str]):
         tokens = [Token(t) for t in str_tokens]
         instance = Instance({'text': TextField(tokens, self.token_indexers)})
+        instance.index_fields(self.vocab)
         return instance
 
     def assert_instances_are_correct(self, candidate_instances):
@@ -68,7 +69,6 @@ class TestBasicIterator(IteratorTest):
     def test_yield_one_epoch_iterates_over_the_data_once(self):
         for test_instances in (self.instances, self.lazy_instances):
             iterator = BasicIterator(batch_size=2)
-            iterator.index_with(self.vocab)
             batches = list(iterator(test_instances, num_epochs=1))
             # We just want to get the single-token array for the text field in the instance.
             instances = [tuple(instance.detach().cpu().numpy())
@@ -79,9 +79,7 @@ class TestBasicIterator(IteratorTest):
 
     def test_call_iterates_over_data_forever(self):
         for test_instances in (self.instances, self.lazy_instances):
-            iterator = BasicIterator(batch_size=2)
-            iterator.index_with(self.vocab)
-            generator = iterator(test_instances)
+            generator = BasicIterator(batch_size=2)(test_instances)
             batches = [next(generator) for _ in range(18)]  # going over the data 6 times
             # We just want to get the single-token array for the text field in the instance.
             instances = [tuple(instance.detach().cpu().numpy())
@@ -213,25 +211,3 @@ class TestBasicIterator(IteratorTest):
         params = Params({"batch_size": 10})
         iterator = BasicIterator.from_params(params)
         assert iterator._batch_size == 10
-
-    def test_maximum_samples_per_batch(self):
-        for test_instances in (self.instances, self.lazy_instances):
-            # pylint: disable=protected-access
-            iterator = BasicIterator(
-                    batch_size=3, maximum_samples_per_batch=['num_tokens', 9]
-            )
-            iterator.index_with(self.vocab)
-            batches = list(iterator._create_batches(test_instances, shuffle=False))
-
-            # ensure all instances are in a batch
-            grouped_instances = [batch.instances for batch in batches]
-            num_instances = sum(len(group) for group in grouped_instances)
-            assert num_instances == len(self.instances)
-
-            # ensure all batches are sufficiently small
-            for batch in batches:
-                batch_sequence_length = max(
-                        [instance.get_padding_lengths()['text']['num_tokens']
-                         for instance in batch.instances]
-                )
-                assert batch_sequence_length * len(batch.instances) <= 9

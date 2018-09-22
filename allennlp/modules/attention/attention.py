@@ -7,6 +7,7 @@ import torch
 
 from overrides import overrides
 from allennlp.common.registrable import Registrable
+from allennlp.common import Params
 from allennlp.nn.util import masked_softmax
 
 
@@ -51,3 +52,8 @@ class Attention(torch.nn.Module, Registrable):
 
     def _forward_internal(self, vector: torch.Tensor, matrix: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+
+    @classmethod
+    def from_params(cls, params: Params) -> 'Attention':
+        clazz = cls.by_name(params.pop_choice("type", cls.list_available()))
+        return clazz.from_params(params)

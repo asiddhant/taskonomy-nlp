@@ -8,6 +8,7 @@ from overrides import overrides
 from nltk.corpus.reader.bracket_parse import BracketParseCorpusReader # pylint: disable=no-name-in-module
 from nltk.tree import Tree
 
+from allennlp.common import Params
 from allennlp.common.file_utils import cached_path
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.fields import TextField, SpanField, SequenceLabelField, ListField, MetadataField, Field
@@ -39,24 +40,14 @@ class PennTreeBankConstituencySpanDatasetReader(DatasetReader):
         as a field.
     lazy : ``bool``, optional, (default = ``False``)
         Whether or not instances can be consumed lazily.
-    label_namespace_prefix : ``str``, optional, (default = ``""``)
-        Prefix used for the label namespace.  The ``span_labels`` will use
-        namespace ``label_namespace_prefix + 'labels'``, and if using POS
-        tags their namespace is ``label_namespace_prefix + pos_label_namespace``.
-    pos_label_namespace : ``str``, optional, (default = ``"pos"``)
-        The POS tag namespace is ``label_namespace_prefix + pos_label_namespace``.
     """
     def __init__(self,
                  token_indexers: Dict[str, TokenIndexer] = None,
                  use_pos_tags: bool = True,
-                 lazy: bool = False,
-                 label_namespace_prefix: str = "",
-                 pos_label_namespace: str = "pos") -> None:
+                 lazy: bool = False) -> None:
         super().__init__(lazy=lazy)
         self._token_indexers = token_indexers or {'tokens': SingleIdTokenIndexer()}
         self._use_pos_tags = use_pos_tags
-        self._label_namespace_prefix = label_namespace_prefix
-        self._pos_label_namespace = pos_label_namespace
 
     @overrides
     def _read(self, file_path):
@@ -113,10 +104,8 @@ class PennTreeBankConstituencySpanDatasetReader(DatasetReader):
         text_field = TextField([Token(x) for x in tokens], token_indexers=self._token_indexers)
         fields: Dict[str, Field] = {"tokens": text_field}
 
-        pos_namespace = self._label_namespace_prefix + self._pos_label_namespace
         if self._use_pos_tags and pos_tags is not None:
-            pos_tag_field = SequenceLabelField(pos_tags, text_field,
-                                               label_namespace=pos_namespace)
+            pos_tag_field = SequenceLabelField(pos_tags, text_field, label_namespace="pos")
             fields["pos_tags"] = pos_tag_field
         elif self._use_pos_tags:
             raise ConfigurationError("use_pos_tags was set to True but no gold pos"
@@ -151,8 +140,7 @@ class PennTreeBankConstituencySpanDatasetReader(DatasetReader):
         fields["spans"] = span_list_field
         if gold_tree is not None:
             fields["span_labels"] = SequenceLabelField(gold_labels,
-                                                       span_list_field,
-                                                       label_namespace=self._label_namespace_prefix + "labels")
+                                                       span_list_field)
         return Instance(fields)
 
     def _strip_functional_tags(self, tree: Tree) -> None:
@@ -230,3 +218,13 @@ class PennTreeBankConstituencySpanDatasetReader(DatasetReader):
                 typed_spans[span] = tree.label() + "-" + current_span_label
 
         return end
+
+    @classmethod
+    def from_params(cls, params: Params) -> 'PennTreeBankConstituencySpanDatasetReader':
+        token_indexers = TokenIndexer.dict_from_params(params.pop('token_indexers', {}))
+        use_pos_tags = params.pop('use_pos_tags', True)
+        lazy = params.pop('lazy', False)
+        params.assert_empty(cls.__name__)
+        return PennTreeBankConstituencySpanDatasetReader(token_indexers=token_indexers,
+                                                         use_pos_tags=use_pos_tags,
+                                                         lazy=lazy)

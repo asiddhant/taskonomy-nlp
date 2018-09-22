@@ -1,3 +1,4 @@
+# pylint: disable=no-self-use
 from typing import Dict
 
 from overrides import overrides
@@ -36,14 +37,15 @@ class IndexField(Field[torch.Tensor]):
 
     @overrides
     def get_padding_lengths(self) -> Dict[str, int]:
-        # pylint: disable=no-self-use
         return {}
 
     @overrides
-    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
+    def as_tensor(self,
+                  padding_lengths: Dict[str, int],
+                  cuda_device: int = -1) -> torch.Tensor:
         # pylint: disable=unused-argument
         tensor = torch.LongTensor([self.sequence_index])
-        return tensor
+        return tensor if cuda_device == -1 else tensor.cuda(cuda_device)
 
     @overrides
     def empty_field(self):

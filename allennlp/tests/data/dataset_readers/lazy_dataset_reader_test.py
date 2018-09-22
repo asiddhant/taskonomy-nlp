@@ -11,7 +11,7 @@ from allennlp.common.util import ensure_list
 
 
 class LazyDatasetReader(DatasetReader):
-    def __init__(self, instances: List[Instance], lazy: bool) -> None:
+    def __init__(self, instances: List[Instance], lazy: bool):
         super().__init__()
         self.lazy = lazy
         self._instances = instances

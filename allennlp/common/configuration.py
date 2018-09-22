@@ -4,7 +4,6 @@ Tools for programmatically generating config files for AllenNLP models.
 # pylint: disable=protected-access,too-many-return-statements
 
 from typing import NamedTuple, Optional, Any, List, TypeVar, Generic, Type, Dict, Union, Sequence, Tuple
-import collections
 import inspect
 import importlib
 import json
@@ -46,10 +45,10 @@ def full_name(cla55: Optional[type]) -> str:
     args = getattr(cla55, '__args__', ())
 
     # Special handling for compound types
-    if origin in (Dict, dict):
+    if origin == Dict:
         key_type, value_type = args
         return f"""Dict[{full_name(key_type)}, {full_name(value_type)}]"""
-    elif origin in (Tuple, tuple, List, list, Sequence, collections.abc.Sequence):
+    elif origin in (Tuple, List, Sequence):
         return f"""{_remove_prefix(str(origin))}[{", ".join(full_name(arg) for arg in args)}]"""
     elif origin == Union:
         # Special special case to handle optional types:
@@ -75,10 +74,10 @@ def json_annotation(cla55: Optional[type]):
     args = getattr(cla55, '__args__', ())
 
     # Special handling for compound types
-    if origin in (Dict, dict):
+    if origin == Dict:
         key_type, value_type = args
         return {'origin': "Dict", 'args': [json_annotation(key_type), json_annotation(value_type)]}
-    elif origin in (Tuple, tuple, List, list, Sequence, collections.abc.Sequence):
+    elif origin in (Tuple, List, Sequence):
         return {'origin': _remove_prefix(str(origin)), 'args': [json_annotation(arg) for arg in args]}
     elif origin == Union:
         # Special special case to handle optional types:

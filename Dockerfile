@@ -38,13 +38,22 @@ RUN echo "deb http://http.debian.net/debian jessie-backports main" >>/etc/apt/so
 RUN apt-get update
 RUN apt-get install -y -t jessie-backports openjdk-8-jdk
 
+# Install npm
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && apt-get install -y nodejs
+
 # Copy select files needed for installing requirements.
 # We only copy what we need here so small changes to the repository does not trigger re-installation of the requirements.
 COPY requirements.txt .
+COPY requirements_test.txt .
 COPY scripts/install_requirements.sh scripts/install_requirements.sh
-RUN ./scripts/install_requirements.sh
+RUN INSTALL_TEST_REQUIREMENTS="true" ./scripts/install_requirements.sh
 
-COPY bin/ bin/
+# And the demo; `npm install` and `npm run build` are slow, so we skip them if we can.
+COPY demo/ demo/
+COPY scripts/build_demo.py scripts/build_demo.py
+ARG BUILD_DEMO=false
+RUN ./scripts/build_demo.py
+
 COPY scripts/ scripts/
 COPY allennlp/ allennlp/
 COPY pytest.ini pytest.ini
@@ -66,7 +75,7 @@ RUN ./scripts/cache_models.py
 
 # Optional argument to set an environment variable with the Git SHA
 ARG SOURCE_COMMIT
-ENV ALLENNLP_SOURCE_COMMIT $SOURCE_COMMIT
+ENV SOURCE_COMMIT $SOURCE_COMMIT
 
 LABEL maintainer="allennlp-contact@allenai.org"
 
