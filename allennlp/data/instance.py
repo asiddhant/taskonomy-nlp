@@ -1,4 +1,4 @@
-from typing import Dict, Mapping
+from typing import Dict, MutableMapping
 
 from allennlp.data.fields.field import DataArray, Field
 from allennlp.data.vocabulary import Vocabulary
@@ -22,9 +22,19 @@ class Instance:
     fields : ``Dict[str, Field]``
         The ``Field`` objects that will be used to produce data arrays for this instance.
     """
-    def __init__(self, fields: Mapping[str, Field]) -> None:
+    def __init__(self, fields: MutableMapping[str, Field]) -> None:
         self.fields = fields
         self.indexed = False
+
+    def add_field(self, field_name: str, field: Field, vocab: Vocabulary = None) -> None:
+        """
+        Add the field to the existing fields mapping.
+        If we have already indexed the Instance, then we also index `field`, so
+        it is necessary to supply the vocab.
+        """
+        self.fields[field_name] = field
+        if self.indexed:
+            field.index(vocab)
 
     def count_vocab_items(self, counter: Dict[str, Dict[str, int]]):
         """
@@ -60,9 +70,7 @@ class Instance:
         return lengths
 
     def as_tensor_dict(self,
-                       padding_lengths: Dict[str, Dict[str, int]] = None,
-                       cuda_device: int = -1,
-                       for_training: bool = True) -> Dict[str, DataArray]:
+                       padding_lengths: Dict[str, Dict[str, int]] = None) -> Dict[str, DataArray]:
         """
         Pads each ``Field`` in this instance to the lengths given in ``padding_lengths`` (which is
         keyed by field name, then by padding key, the same as the return value in
@@ -74,9 +82,7 @@ class Instance:
         padding_lengths = padding_lengths or self.get_padding_lengths()
         tensors = {}
         for field_name, field in self.fields.items():
-            tensors[field_name] = field.as_tensor(padding_lengths[field_name],
-                                                  cuda_device=cuda_device,
-                                                  for_training=for_training)
+            tensors[field_name] = field.as_tensor(padding_lengths[field_name])
         return tensors
 
 

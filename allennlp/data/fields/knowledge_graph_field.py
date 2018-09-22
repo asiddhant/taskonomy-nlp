@@ -2,11 +2,11 @@
 ``KnowledgeGraphField`` is a ``Field`` which stores a knowledge graph representation.
 """
 from typing import Callable, Dict, List, Set
+from collections import defaultdict
 
 import editdistance
 from overrides import overrides
 import torch
-from torch.autograd import Variable
 
 from allennlp.common import util
 from allennlp.common.checks import ConfigurationError
@@ -161,10 +161,13 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
     def index(self, vocab: Vocabulary):
         self._indexed_entity_texts = {}
         for indexer_name, indexer in self._token_indexers.items():
-            indexer_arrays = []
+            indexer_arrays: Dict[str, List] = defaultdict(list)
+
             for entity_text in self.entity_texts:
-                indexer_arrays.append([indexer.token_to_indices(token, vocab) for token in entity_text])
-            self._indexed_entity_texts[indexer_name] = indexer_arrays
+                for index_name, indexed in indexer.tokens_to_indices(entity_text, vocab, indexer_name).items():
+                    indexer_arrays[index_name].append(indexed)
+
+            self._indexed_entity_texts.update(indexer_arrays)
 
     @overrides
     def get_padding_lengths(self) -> Dict[str, int]:
@@ -205,10 +208,7 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
         return padding_lengths
 
     @overrides
-    def as_tensor(self,
-                  padding_lengths: Dict[str, int],
-                  cuda_device: int = -1,
-                  for_training: bool = True) -> Dict[str, torch.Tensor]:
+    def as_tensor(self, padding_lengths: Dict[str, int]) -> Dict[str, torch.Tensor]:
         tensors = {}
         desired_num_entities = padding_lengths['num_entities']
         desired_num_entity_tokens = padding_lengths['num_entity_tokens']
@@ -219,12 +219,12 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
                                                           default_value=lambda: [])
             padded_arrays = []
             for padded_entity in padded_entities:
-                padded_array = indexer.pad_token_sequence(padded_entity,
-                                                          desired_num_entity_tokens,
-                                                          padding_lengths)
+                padded_array = indexer.pad_token_sequence({'key': padded_entity},
+                                                          {'key': desired_num_entity_tokens},
+                                                          padding_lengths)['key']
                 padded_arrays.append(padded_array)
-            tensor = Variable(torch.LongTensor(padded_arrays), volatile=not for_training)
-            tensors[indexer_name] = tensor if cuda_device == -1 else tensor.cuda(cuda_device)
+            tensor = torch.LongTensor(padded_arrays)
+            tensors[indexer_name] = tensor
         padded_linking_features = util.pad_sequence_to_length(self.linking_features,
                                                               desired_num_entities,
                                                               default_value=lambda: [])
@@ -235,10 +235,7 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
                                                           desired_num_utterance_tokens,
                                                           default_value=default_feature_value)
             padded_linking_arrays.append(padded_features)
-        linking_features_tensor = Variable(torch.FloatTensor(padded_linking_arrays),
-                                           volatile=not for_training)
-        if cuda_device != -1:
-            linking_features_tensor = linking_features_tensor.cuda(cuda_device)
+        linking_features_tensor = torch.FloatTensor(padded_linking_arrays)
         return {'text': tensors, 'linking': linking_features_tensor}
 
     def _compute_linking_features(self) -> List[List[List[float]]]:

@@ -4,7 +4,6 @@ import textwrap
 
 from overrides import overrides
 import torch
-from torch.autograd import Variable
 
 from allennlp.common.checks import ConfigurationError
 from allennlp.common.util import pad_sequence_to_length
@@ -93,20 +92,19 @@ class SequenceLabelField(Field[torch.Tensor]):
         return {'num_tokens': self.sequence_field.sequence_length()}
 
     @overrides
-    def as_tensor(self,
-                  padding_lengths: Dict[str, int],
-                  cuda_device: int = -1,
-                  for_training: bool = True) -> torch.Tensor:
+    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
         desired_num_tokens = padding_lengths['num_tokens']
         padded_tags = pad_sequence_to_length(self._indexed_labels, desired_num_tokens)
-        tensor = Variable(torch.LongTensor(padded_tags), volatile=not for_training)
-        return tensor if cuda_device == -1 else tensor.cuda(cuda_device)
+        tensor = torch.LongTensor(padded_tags)
+        return tensor
 
     @overrides
-    def empty_field(self):  # pylint: disable=no-self-use
+    def empty_field(self) -> 'SequenceLabelField':  # pylint: disable=no-self-use
         # pylint: disable=protected-access
-        sequence_label_field = SequenceLabelField([], self.sequence_field.empty_field())
-        sequence_label_field._indexed_labels = []
+        # The empty_list here is needed for mypy
+        empty_list: List[str] = []
+        sequence_label_field = SequenceLabelField(empty_list, self.sequence_field.empty_field())
+        sequence_label_field._indexed_labels = empty_list
         return sequence_label_field
 
     def __str__(self) -> str:

@@ -16,16 +16,25 @@ MODULES_THAT_NEED_NO_DOCS: Set[str] = {
         'allennlp.version',
 
         # No docs for custom extensions, which aren't even in python.
-        'allennlp.custom_extensions',
-        'allennlp.custom_extensions._ext',
-        'allennlp.custom_extensions._ext.highway_lstm_layer',
-        'allennlp.custom_extensions.build',
+        'allennlp.custom_extensions.*',
+
+        # No docs for tests, unnecessary info for users.
+        'allennlp.tests.*',
 
         # TODO(joelgrus): Figure out how to make these docs build;
         # the cffi part is causing problems.
         'allennlp.modules.alternating_highway_lstm',
         # Private base class, no docs needed.
         'allennlp.modules.encoder_base',
+        # Deprecated module name (renamed to allennlp.modules.pruner). This can be removed once the
+        # module is removed (probably in version 0.8).
+        'allennlp.modules.span_pruner',
+        # Moved to dataset_readers/semantic_parsing. TODO(Mark): remove in version 0.8.
+        'allennlp.data.dataset_readers.atis',
+        'allennlp.data.dataset_readers.nlvr',
+        'allennlp.data.dataset_readers.wikitables',
+        # Deprecated in favor of allennlp.predictors.
+        'allennlp.service.predictors.*',
 }
 
 DOCS_THAT_NEED_NO_MODULES: Set[str] = {
@@ -62,7 +71,8 @@ if __name__ == "__main__":
     existing = existing_modules()
     documented = documented_modules()
     for module in sorted(existing):
-        if module not in documented and module not in MODULES_THAT_NEED_NO_DOCS:
+        if module not in documented and not any(re.fullmatch(ignored_module, module) for ignored_module
+                                                in MODULES_THAT_NEED_NO_DOCS):
             print("undocumented module:", module)
             success = False
     for module in sorted(documented):

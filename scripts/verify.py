@@ -20,7 +20,7 @@ def main(checks):
 
         if "pylint" in checks:
             print("Linter (pylint):", flush=True)
-            run("pylint -d locally-disabled,locally-enabled -f colorized allennlp tests", shell=True, check=True)
+            run("pylint -d locally-disabled,locally-enabled -f colorized allennlp", shell=True, check=True)
             print("pylint checks passed")
 
         if "mypy" in checks:
@@ -37,12 +37,22 @@ def main(checks):
             run("./scripts/check_docs.py", shell=True, check=True)
             print("check docs passed")
 
+        if "check-links" in checks:
+            print("Checking links in Markdown files:", flush=True)
+            run("./scripts/check_links.py", shell=True, check=True)
+            print("check links passed")
+
+        if "check-requirements" in checks:
+            print("Checking requirements.txt against setup.py", flush=True)
+            run("./scripts/check_requirements_and_setup.py")
+            print("check requirements passed")
+
     except CalledProcessError:
         # squelch the exception stacktrace
         sys.exit(1)
 
 if __name__ == "__main__":
-    checks = ['pytest', 'pylint', 'mypy', 'build-docs', 'check-docs']
+    checks = ['pytest', 'pylint', 'mypy', 'build-docs', 'check-docs', 'check-links', 'check-requirements']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--checks', type=str, required=False, nargs='+', choices=checks)

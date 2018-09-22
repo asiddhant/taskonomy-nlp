@@ -3,7 +3,6 @@ from typing import Dict
 
 from overrides import overrides
 import torch
-from torch.autograd import Variable
 
 from allennlp.data.fields.field import Field
 from allennlp.data.fields.sequence_field import SequenceField
@@ -48,13 +47,10 @@ class SpanField(Field[torch.Tensor]):
         return {}
 
     @overrides
-    def as_tensor(self,
-                  padding_lengths: Dict[str, int],
-                  cuda_device: int = -1,
-                  for_training: bool = True) -> torch.Tensor:
+    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
         # pylint: disable=unused-argument
-        tensor = Variable(torch.LongTensor([self.span_start, self.span_end]), volatile=not for_training)
-        return tensor if cuda_device == -1 else tensor.cuda(cuda_device)
+        tensor = torch.LongTensor([self.span_start, self.span_end])
+        return tensor
 
     @overrides
     def empty_field(self):

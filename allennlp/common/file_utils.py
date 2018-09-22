@@ -2,23 +2,28 @@
 Utilities for working with the local dataset cache.
 """
 
-from typing import Tuple
 import os
-from hashlib import sha256
 import logging
 import shutil
 import tempfile
-from urllib.parse import urlparse
 import json
+from urllib.parse import urlparse
+from pathlib import Path
+from typing import Optional, Tuple, Union, IO, Callable
+from hashlib import sha256
+from functools import wraps
 
+import boto3
+from botocore.exceptions import ClientError
 import requests
 
 from allennlp.common.tqdm import Tqdm
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-CACHE_ROOT = os.getenv('ALLENNLP_CACHE_ROOT', os.path.expanduser(os.path.join('~', '.allennlp')))
-DATASET_CACHE = os.path.join(CACHE_ROOT, "datasets")
+CACHE_ROOT = Path(os.getenv('ALLENNLP_CACHE_ROOT', Path.home() / '.allennlp'))
+DATASET_CACHE = str(CACHE_ROOT / "datasets")
+
 
 def url_to_filename(url: str, etag: str = None) -> str:
     """
@@ -36,6 +41,7 @@ def url_to_filename(url: str, etag: str = None) -> str:
         filename += '.' + etag_hash.hexdigest()
 
     return filename
+
 
 def filename_to_url(filename: str, cache_dir: str = None) -> Tuple[str, str]:
     """
@@ -60,7 +66,8 @@ def filename_to_url(filename: str, cache_dir: str = None) -> Tuple[str, str]:
 
     return url, etag
 
-def cached_path(url_or_filename: str, cache_dir: str = None) -> str:
+
+def cached_path(url_or_filename: Union[str, Path], cache_dir: str = None) -> str:
     """
     Given something that might be a URL (or might be a local path),
     determine which. If it's a URL, download the file and cache it, and
@@ -69,13 +76,15 @@ def cached_path(url_or_filename: str, cache_dir: str = None) -> str:
     """
     if cache_dir is None:
         cache_dir = DATASET_CACHE
+    if isinstance(url_or_filename, Path):
+        url_or_filename = str(url_or_filename)
 
     parsed = urlparse(url_or_filename)
 
-    if parsed.scheme in ('http', 'https'):
+    if parsed.scheme in ('http', 'https', 's3'):
         # URL, so get it from the cache (downloading if necessary)
         return get_from_cache(url_or_filename, cache_dir)
-    elif parsed.scheme == '' and os.path.exists(url_or_filename):
+    elif os.path.exists(url_or_filename):
         # File, and it exists.
         return url_or_filename
     elif parsed.scheme == '':
@@ -84,6 +93,67 @@ def cached_path(url_or_filename: str, cache_dir: str = None) -> str:
     else:
         # Something unknown
         raise ValueError("unable to parse {} as a URL or as a local path".format(url_or_filename))
+
+
+def split_s3_path(url: str) -> Tuple[str, str]:
+    """Split a full s3 path into the bucket name and path."""
+    parsed = urlparse(url)
+    if not parsed.netloc or not parsed.path:
+        raise ValueError("bad s3 path {}".format(url))
+    bucket_name = parsed.netloc
+    s3_path = parsed.path
+    # Remove '/' at beginning of path.
+    if s3_path.startswith("/"):
+        s3_path = s3_path[1:]
+    return bucket_name, s3_path
+
+
+def s3_request(func: Callable):
+    """
+    Wrapper function for s3 requests in order to create more helpful error
+    messages.
+    """
+
+    @wraps(func)
+    def wrapper(url: str, *args, **kwargs):
+        try:
+            return func(url, *args, **kwargs)
+        except ClientError as exc:
+            if int(exc.response["Error"]["Code"]) == 404:
+                raise FileNotFoundError("file {} not found".format(url))
+            else:
+                raise
+
+    return wrapper
+
+
+@s3_request
+def s3_etag(url: str) -> Optional[str]:
+    """Check ETag on S3 object."""
+    s3_resource = boto3.resource("s3")
+    bucket_name, s3_path = split_s3_path(url)
+    s3_object = s3_resource.Object(bucket_name, s3_path)
+    return s3_object.e_tag
+
+
+@s3_request
+def s3_get(url: str, temp_file: IO) -> None:
+    """Pull a file directly from S3."""
+    s3_resource = boto3.resource("s3")
+    bucket_name, s3_path = split_s3_path(url)
+    s3_resource.Bucket(bucket_name).download_fileobj(s3_path, temp_file)
+
+
+def http_get(url: str, temp_file: IO) -> None:
+    req = requests.get(url, stream=True)
+    content_length = req.headers.get('Content-Length')
+    total = int(content_length) if content_length is not None else None
+    progress = Tqdm.tqdm(unit="B", total=total)
+    for chunk in req.iter_content(chunk_size=1024):
+        if chunk: # filter out keep-alive new chunks
+            progress.update(len(chunk))
+            temp_file.write(chunk)
+    progress.close()
 
 
 # TODO(joelgrus): do we want to do checksums or anything like that?
@@ -97,13 +167,16 @@ def get_from_cache(url: str, cache_dir: str = None) -> str:
 
     os.makedirs(cache_dir, exist_ok=True)
 
-    # make HEAD request to check ETag
-    response = requests.head(url)
-    if response.status_code != 200:
-        raise IOError("HEAD request failed for url {}".format(url))
+    # Get eTag to add to filename, if it exists.
+    if url.startswith("s3://"):
+        etag = s3_etag(url)
+    else:
+        response = requests.head(url, allow_redirects=True)
+        if response.status_code != 200:
+            raise IOError("HEAD request failed for url {} with status code {}"
+                          .format(url, response.status_code))
+        etag = response.headers.get("ETag")
 
-    # add ETag to filename if it exists
-    etag = response.headers.get("ETag")
     filename = url_to_filename(url, etag)
 
     # get cache path to put the file
@@ -116,15 +189,10 @@ def get_from_cache(url: str, cache_dir: str = None) -> str:
             logger.info("%s not found in cache, downloading to %s", url, temp_file.name)
 
             # GET file object
-            req = requests.get(url, stream=True)
-            content_length = req.headers.get('Content-Length')
-            total = int(content_length) if content_length is not None else None
-            progress = Tqdm.tqdm(unit="B", total=total)
-            for chunk in req.iter_content(chunk_size=1024):
-                if chunk: # filter out keep-alive new chunks
-                    progress.update(len(chunk))
-                    temp_file.write(chunk)
-            progress.close()
+            if url.startswith("s3://"):
+                s3_get(url, temp_file)
+            else:
+                http_get(url, temp_file)
 
             # we are copying the file before closing it, so flush to avoid truncation
             temp_file.flush()
@@ -144,3 +212,9 @@ def get_from_cache(url: str, cache_dir: str = None) -> str:
             logger.info("removing temp file %s", temp_file.name)
 
     return cache_path
+
+
+def get_file_extension(path: str, dot=True, lower: bool = True):
+    ext = os.path.splitext(path)[1]
+    ext = ext if dot else ext[1:]
+    return ext.lower() if lower else ext
