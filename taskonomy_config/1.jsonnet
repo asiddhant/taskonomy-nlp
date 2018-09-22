@@ -28,11 +28,12 @@
       ]
     ],
     "encoder": {
-      "type": "alternating_highway_lstm_cuda",
+      "type": "alternating_lstm",
       "input_size": 200,
       "hidden_size": 300,
       "num_layers": 8,
       "recurrent_dropout_probability": 0.1,
+      "use_highway": true
     },
     "binary_feature_dim": 100
   },
@@ -43,7 +44,7 @@
   },
 
   "trainer": {
-    "num_epochs": 20,
+    "num_epochs": 25,
     "grad_clipping": 1.0,
     "patience": 20,
     "validation_metric": "+f1-measure-overall",
