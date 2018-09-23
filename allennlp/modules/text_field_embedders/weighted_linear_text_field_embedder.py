@@ -44,6 +44,12 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             name = 'token_embedder_%s' % key
             self.add_module(name, embedder)
         self._allow_unmatched_keys = allow_unmatched_keys
+        
+        self.use_glove = False
+        if 'glove' in self._token_embedders :
+            self.use_glove = 1
+            self.glove_embedder = self._token_embedders['glove']
+            del self._token_embedders['glove']
 
         self.linear_layers = {}
         for key, embedder in self._token_embedders.items():
@@ -57,12 +63,6 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         self.linear_combiner.weight = nn.functional.softmax(self.linear_combiner.weight, dim =0)
         if torch.cuda.is_available():
             self.linear_combiner.cuda()
-            
-        self.use_glove = False
-        if 'glove' in self._token_embedders :
-            self.use_glove = 1
-            self.glove_embedder = self._token_embedders['glove']
-            del self._token_embedders['glove']
 
     @overrides
     def get_output_dim(self) -> int:
