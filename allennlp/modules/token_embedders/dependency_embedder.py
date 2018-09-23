@@ -30,7 +30,7 @@ class DependencyParsingEmbedding(TokenEmbedder):
         self.model.eval()
         self.dataset_reader_params = self.config["dataset_reader"]
         self.dataset_reader = DatasetReader.from_params(self.dataset_reader_params)
-        self.tokenizer = SpacyWordSplitter(language='en_core_web_sm', pos_tags=True)
+        self.tokenizer = SpacyWordSplitter(language='en_core_web_sm', pos_tags=True, wst=True)
 
     def forward(self, inputs):
         texts = self.inputs_to_texts(inputs)
@@ -49,9 +49,7 @@ class DependencyParsingEmbedding(TokenEmbedder):
     def texts_to_instances(self, texts):
         instances = []
         for text in texts:
-            print(text.split(), len(text.split()))
             text = self.tokenizer.split_words(text)
-            print(text, len(text))
             sentence_text = [token.text for token in text]
             pos_tags = [token.tag_ for token in text]
             instance = self.dataset_reader.text_to_instance(sentence_text, pos_tags)

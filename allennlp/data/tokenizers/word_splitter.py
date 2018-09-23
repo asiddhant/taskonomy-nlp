@@ -7,6 +7,7 @@ import spacy
 from allennlp.common import Registrable
 from allennlp.common.util import get_spacy_model
 from allennlp.data.tokenizers.token import Token
+from spacy.tokens import Doc
 
 
 class WordSplitter(Registrable):
@@ -129,6 +130,16 @@ class JustSpacesWordSplitter(WordSplitter):
 def _remove_spaces(tokens: List[spacy.tokens.Token]) -> List[spacy.tokens.Token]:
     return [token for token in tokens if not token.is_space]
 
+class WhitespaceTokenizer(object):
+    def __init__(self,vocab):
+        self.vocab = vocab
+
+    def __call__(self, text):
+        words = text.split(' ')
+        # All tokens 'own' a subsequent space character in this tokenizer
+        spaces = [True] * len(words)
+        return Doc(self.vocab, words=words, spaces=spaces)
+
 @WordSplitter.register('spacy')
 class SpacyWordSplitter(WordSplitter):
     """
@@ -139,8 +150,11 @@ class SpacyWordSplitter(WordSplitter):
                  language: str = 'en_core_web_sm',
                  pos_tags: bool = False,
                  parse: bool = False,
-                 ner: bool = False) -> None:
+                 ner: bool = False,
+                 wst: bool = False) -> None:
         self.spacy = get_spacy_model(language, pos_tags, parse, ner)
+        if wst:
+            self.spacy.tokenizer = WhitespaceTokenizer(self.spacy.vocab)
 
     @overrides
     def batch_split_words(self, sentences: List[str]) -> List[List[Token]]:

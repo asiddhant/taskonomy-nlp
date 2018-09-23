@@ -29,7 +29,7 @@ class NEREmbedding(TokenEmbedder):
         self.model.eval()
         self.dataset_reader_params = self.config["dataset_reader"]
         self.dataset_reader = DatasetReader.from_params(self.dataset_reader_params)
-        self.tokenizer = SpacyWordSplitter(language='en_core_web_sm', ner=True)
+        self.tokenizer = SpacyWordSplitter(language='en_core_web_sm', ner=True, wst=True)
 
     def forward(self, inputs):
         texts = self.inputs_to_texts(inputs)
