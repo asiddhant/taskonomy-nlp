@@ -12,6 +12,12 @@
         "text_field_embedder": {
             "type": "weighted_average",
             "token_embedders": {
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 100,
+                    "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+                    "trainable": true
+                },
                 "dependency_embedder": {
                     "type": "dependency_embedder",
                     "serialization_dir":"pretrained/dependency-parser/",
@@ -44,7 +50,7 @@
         // encoder instead.
         "encoder": {
             "type": "alternating_lstm",
-            "input_size": 612,
+            "input_size": 712,
             "hidden_size": 300,
             "num_layers": 8,
             "recurrent_dropout_probability": 0.1,

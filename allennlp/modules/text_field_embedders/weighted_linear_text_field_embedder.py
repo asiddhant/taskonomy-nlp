@@ -9,6 +9,7 @@ from allennlp.modules.text_field_embedders.text_field_embedder import TextFieldE
 from allennlp.modules.time_distributed import TimeDistributed
 from allennlp.modules.token_embedders.token_embedder import TokenEmbedder
 from allennlp.modules.token_embedders import DependencyParsingEmbedding, ConstituencyParsingEmbedding, NEREmbedding
+from allennlp.modules.scalar_mix import ScalarMix
 
 import os
 
@@ -46,45 +47,50 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         self._allow_unmatched_keys = allow_unmatched_keys
         
         self.use_glove = False
-        if 'glove' in self._token_embedders :
-            self.use_glove = 1
-            self.glove_embedder = self._token_embedders['glove']
-            del self._token_embedders['glove']
+        if 'tokens' in self._token_embedders :
+            self.use_glove = True
+            self.glove_embedder = self._token_embedders['tokens']
+            
+        self.num_tasks = len(self._token_embedders) - int(self.use_glove)
 
         self.linear_layers = {}
         for key, embedder in self._token_embedders.items():
             in_dim = embedder.get_output_dim()
-            out_dim = self.get_output_dim()
+            out_dim = self.output_dim
             self.linear_layers[key] = nn.Linear(in_dim, out_dim, bias=False)
             if torch.cuda.is_available():
                 self.linear_layers[key].cuda()
-
-        self.linear_combiner = nn.Linear(len(self._token_embedders), 1, bias=False)
-        self.linear_combiner.weight = nn.functional.softmax(self.linear_combiner.weight, dim =0)
-        if torch.cuda.is_available():
-            self.linear_combiner.cuda()
+         
+        self.scalar_mix = ScalarMix(self.num_tasks)
+        self.add_module('scalar_mix', self.scalar_mix)
+        
 
     @overrides
     def get_output_dim(self) -> int:
-        return self.output_dim
+        return self.output_dim + (self.glove_embedder.get_output_dim() if self.use_glove else 0)
 
-    def forward(self, inputs, num_wrapping_dims: int = 0) -> torch.Tensor:
+    def forward(self, tokens, num_wrapping_dims: int = 0) -> torch.Tensor:
         embedded_representations = []
         keys = sorted(self._token_embedders.keys())
         for key in keys:
             # Note: need to use getattr here so that the pytorch voodoo
             # with submodules works with multiple GPUs.
+            if key == 'tokens':
+                continue
             embedder = getattr(self, 'token_embedder_{}'.format(key))
             for _ in range(num_wrapping_dims):
                 embedder = TimeDistributed(embedder)
-            token_vectors = self.linear_layers[key](embedder(inputs))
+            token_vectors = self.linear_layers[key](embedder(tokens))
             embedded_representations.append(token_vectors)
-        embedded_representations = torch.stack(embedded_representations, dim=-1, out=None)
-        combined_emb = self.linear_combiner(embedded_representations).squeeze(-1)
+        
+        combined_emb = self.scalar_mix(embedded_representations)
+        
         if self.use_glove :  
-            embedder = TimeDistributed(self.glove_embedder)
-            glove_emb = embedder(inputs)
-            combined_emb = torch.cat([combined_emb,glove_emb],dim=-1)
+            embedder = getattr(self, 'token_embedder_tokens')
+            for _ in range(num_wrapping_dims):
+                embedder = TimeDistributed(self.glove_embedder)
+            glove_emb = embedder(tokens['tokens'])
+            combined_emb = torch.cat([combined_emb, glove_emb],dim=-1)
         return combined_emb
 
     # This is some unusual logic, it needs a custom from_params.

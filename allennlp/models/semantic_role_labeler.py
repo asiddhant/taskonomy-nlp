@@ -124,8 +124,9 @@ class SemanticRoleLabeler(Model):
             A scalar loss to be optimised.
 
         """
-        embedder_model_input = {'metadata':metadata}
-        embedded_text_input = self.embedding_dropout(self.text_field_embedder(embedder_model_input))
+        tokens['metadata'] = metadata
+        embedded_text_input = self.embedding_dropout(self.text_field_embedder(tokens))
+        del tokens['metadata']
         mask = get_text_field_mask(tokens)
         embedded_verb_indicator = self.binary_feature_embedding(verb_indicator.long())
         # Concatenate the verb feature onto the embedded text. This now
