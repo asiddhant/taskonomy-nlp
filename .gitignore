@@ -39,3 +39,6 @@ __pycache__
 
 datasets/
 saved_models/
+pretrained/
+
+scratch.ipynb

@@ -124,11 +124,13 @@ class SemanticRoleLabeler(Model):
             A scalar loss to be optimised.
 
         """
-        embedded_text_input = self.embedding_dropout(self.text_field_embedder(tokens))
+        embedder_model_input = {'metadata':metadata}
+        embedded_text_input = self.embedding_dropout(self.text_field_embedder(embedder_model_input))
         mask = get_text_field_mask(tokens)
         embedded_verb_indicator = self.binary_feature_embedding(verb_indicator.long())
         # Concatenate the verb feature onto the embedded text. This now
         # has shape (batch_size, sequence_length, embedding_dim + binary_feature_dim).
+        print(embedded_text_input.shape, embedded_verb_indicator.shape) 
         embedded_text_with_verb_indicator = torch.cat([embedded_text_input, embedded_verb_indicator], -1)
         batch_size, sequence_length, _ = embedded_text_with_verb_indicator.size()
 
