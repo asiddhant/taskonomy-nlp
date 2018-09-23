@@ -57,6 +57,12 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         self.linear_combiner.weight = nn.functional.softmax(self.linear_combiner.weight, dim =0)
         if torch.cuda.is_available():
             self.linear_combiner.cuda()
+            
+        self.use_glove = False
+        if 'glove' in self._token_embedders :
+            self.use_glove = 1
+            self.glove_embedder = self._token_embedders['glove']
+            del self._token_embedders['glove']
 
     @overrides
     def get_output_dim(self) -> int:
@@ -75,6 +81,10 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             embedded_representations.append(token_vectors)
         embedded_representations = torch.stack(embedded_representations, dim=-1, out=None)
         combined_emb = self.linear_combiner(embedded_representations).squeeze(-1)
+        if self.use_glove :  
+            embedder = TimeDistributed(self.glove_embedder)
+            glove_emb = embedder(inputs)
+            combined_emb = torch.cat([combined_emb,glove_emb],dim=-1)
         return combined_emb
 
     # This is some unusual logic, it needs a custom from_params.
