@@ -51,10 +51,19 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             self.use_glove = True
             self.glove_embedder = self._token_embedders['tokens']
             
-        self.num_tasks = len(self._token_embedders) - int(self.use_glove)
+        self.use_elmo = False
+        if 'elmo' in self._token_embedders :
+            self.use_elmo = True
+            self.elmo_embedder = self._token_embedders['elmo']
+            
+        self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo)
 
         self.linear_layers = {}
         for key, embedder in self._token_embedders.items():
+            if key in ['tokens','elmo']:
+                continue
+            print('Hawa ######################################')
+            print (key)
             in_dim = embedder.get_output_dim()
             out_dim = self.output_dim
             self.linear_layers[key] = nn.Linear(in_dim, out_dim, bias=False)
@@ -67,7 +76,8 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
 
     @overrides
     def get_output_dim(self) -> int:
-        return self.output_dim + (self.glove_embedder.get_output_dim() if self.use_glove else 0)
+        return self.output_dim + (self.glove_embedder.get_output_dim() if self.use_glove else 0) + \
+                (self.elmo_embedder.get_output_dim() if self.use_elmo else 0)
 
     def forward(self, tokens, num_wrapping_dims: int = 0) -> torch.Tensor:
         embedded_representations = []
@@ -75,8 +85,10 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         for key in keys:
             # Note: need to use getattr here so that the pytorch voodoo
             # with submodules works with multiple GPUs.
-            if key == 'tokens':
+            if key in ['tokens','elmo']:
                 continue
+            print('Hawa222 ######################################')
+            print (key)
             embedder = getattr(self, 'token_embedder_{}'.format(key))
             for _ in range(num_wrapping_dims):
                 embedder = TimeDistributed(embedder)
@@ -91,6 +103,14 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
                 embedder = TimeDistributed(self.glove_embedder)
             glove_emb = embedder(tokens['tokens'])
             combined_emb = torch.cat([combined_emb, glove_emb],dim=-1)
+        
+        if self.use_elmo :  
+            embedder = getattr(self, 'token_embedder_elmo')
+            for _ in range(num_wrapping_dims):
+                embedder = TimeDistributed(self.elmo_embedder)
+            elmo_emb = embedder(tokens['elmo'])
+            combined_emb = torch.cat([combined_emb, elmo_emb],dim=-1)
+        
         return combined_emb
 
     # This is some unusual logic, it needs a custom from_params.
