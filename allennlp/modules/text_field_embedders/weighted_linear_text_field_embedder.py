@@ -62,8 +62,6 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         for key, embedder in self._token_embedders.items():
             if key in ['tokens','elmo']:
                 continue
-            print('Hawa ######################################')
-            print (key)
             in_dim = embedder.get_output_dim()
             out_dim = self.output_dim
             self.linear_layers[key] = nn.Linear(in_dim, out_dim, bias=False)
@@ -87,8 +85,6 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             # with submodules works with multiple GPUs.
             if key in ['tokens','elmo']:
                 continue
-            print('Hawa222 ######################################')
-            print (key)
             embedder = getattr(self, 'token_embedder_{}'.format(key))
             for _ in range(num_wrapping_dims):
                 embedder = TimeDistributed(embedder)
