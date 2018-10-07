@@ -54,7 +54,7 @@ class BasicTextFieldEmbedder(TextFieldEmbedder):
         for key, embedder in token_embedders.items():
             name = 'token_embedder_%s' % key
             self.add_module(name, embedder)
-        self._allow_unmatched_keys = allow_unmatched_keys
+        self._allow_unmatched_keys = True ### Changed it to fix an issue
 
     @overrides
     def get_output_dim(self) -> int:
