@@ -98,7 +98,7 @@ class ConcatenatedTextFieldEmbedder(TextFieldEmbedder):
             #token_vectors = self.linear_layers[key](embedder(tokens))
             embedded_representations.append(token_vectors)
         
-        concatenated_emb = torch.cat(embedded_representations, dim=1)
+        concatenated_emb = torch.cat(embedded_representations, dim=-1)
         combined_emb = self.linear_layer(concatenated_emb)
         #combined_emb = self.scalar_mix(embedded_representations)
         
