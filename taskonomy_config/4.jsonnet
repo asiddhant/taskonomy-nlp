@@ -16,7 +16,7 @@
     "model": {
         "type": "srl",
         "text_field_embedder": {
-            "type": "weighted_average",
+            "type": "concat_projection",
             "token_embedders": {
                 "elmo": {
                     "type": "elmo_token_embedder",

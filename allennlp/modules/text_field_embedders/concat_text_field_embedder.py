@@ -13,7 +13,7 @@ from allennlp.modules.scalar_mix import ScalarMix
 
 import os
 
-@TextFieldEmbedder.register("weighted_average")
+@TextFieldEmbedder.register("concat_projection")
 class ConcatenatedTextFieldEmbedder(TextFieldEmbedder):
     """
     This is a ``TextFieldEmbedder`` that wraps a collection of :class:`TokenEmbedder` objects.  Each
