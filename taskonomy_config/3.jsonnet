@@ -10,7 +10,7 @@
     "model": {
         "type": "srl",
         "text_field_embedder": {
-            "type": "concat_projection",
+            "type": "weighted_average",
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",

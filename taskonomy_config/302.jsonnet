@@ -2,13 +2,7 @@
 {
     "dataset_reader": {
         "type": "srl",
-        "domain_identifier":"bn",
-        "token_indexers": {
-            "elmo": {
-                "type": "elmo_characters"
-            }
-        }
-    },
+        "domain_identifier":"bn"},
     
     "train_data_path": std.extVar('SRL_TRAIN_DATA_PATH'),
     "validation_data_path": std.extVar('SRL_VAL_DATA_PATH'),
@@ -16,14 +10,13 @@
     "model": {
         "type": "srl",
         "text_field_embedder": {
-            "type": "weighted_average",
+            "type": "concat_projection",
             "token_embedders": {
-                "elmo": {
-                    "type": "elmo_token_embedder",
-                    "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-                    "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-                    "do_layer_norm": false,
-                    "dropout": 0.1
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 100,
+                    "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+                    "trainable": true
                 },
                 "dependency_embedder": {
                     "type": "dependency_embedder",
@@ -57,7 +50,7 @@
         // encoder instead.
         "encoder": {
             "type": "alternating_lstm",
-            "input_size": 1636,
+            "input_size": 712,
             "hidden_size": 300,
             "num_layers": 8,
             "recurrent_dropout_probability": 0.1,
