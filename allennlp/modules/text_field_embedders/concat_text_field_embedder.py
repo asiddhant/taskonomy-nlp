@@ -71,12 +71,13 @@ class ConcatenatedTextFieldEmbedder(TextFieldEmbedder):
              #   self.linear_layers[key].cuda()
          
         out_dim = self.output_dim
-        self.linear_layer = nn.Linear(self.input_dim, out_dim, bias=False)
+        self.linear_layer = nn.Linear(self.input_dim, out_dim, bias=True)
         if torch.cuda.is_available():
             self.linear_layer.cuda()
         #self.scalar_mix = ScalarMix(self.num_tasks)
         #self.add_module('scalar_mix', self.scalar_mix)
-        
+       
+        self.gamma = Parameter(torch.FloatTensor([1.0])) 
 
     @overrides
     def get_output_dim(self) -> int:
@@ -100,6 +101,7 @@ class ConcatenatedTextFieldEmbedder(TextFieldEmbedder):
         
         concatenated_emb = torch.cat(embedded_representations, dim=-1)
         combined_emb = self.linear_layer(concatenated_emb)
+        combined_emb = self.gamma * combined_emb
         #combined_emb = self.scalar_mix(embedded_representations)
         
         if self.use_glove :  
