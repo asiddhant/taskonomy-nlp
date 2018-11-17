@@ -11,11 +11,11 @@ from allennlp.data import Vocabulary
 
 
 @TokenEmbedder.register("srl_embedder")
-class SRLEmbedder(TokenEmbedder):
+class SRLEmbedding(TokenEmbedder):
     def __init__(self,
                  serialization_dir,
                  cuda_device=0) -> None:
-        super(SRLEmbedder, self).__init__()
+        super(SRLEmbedding, self).__init__()
 
         from allennlp.models.archival import load_archive
 

@@ -10,6 +10,7 @@ from allennlp.modules.token_embedders.elmo_token_embedder import ElmoTokenEmbedd
 from allennlp.modules.token_embedders.elmo_token_embedder_2 import ElmoTokenEmbedder2
 from allennlp.modules.token_embedders.openai_transformer_embedder import OpenaiTransformerEmbedder
 from allennlp.modules.token_embedders.dependency_embedder import DependencyParsingEmbedding
+from allennlp.modules.token_embedders.srl_embedder import SRLEmbedding
 from allennlp.modules.token_embedders.dependency_embedder_2 import DependencyParsingEmbedding2
 from allennlp.modules.token_embedders.constituency_embedder import ConstituencyParsingEmbedding
 from allennlp.modules.token_embedders.constituency_embedder_2 import ConstituencyParsingEmbedding2
