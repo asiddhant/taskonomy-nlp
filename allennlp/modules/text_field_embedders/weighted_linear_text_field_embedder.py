@@ -55,6 +55,11 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         if 'elmo' in self._token_embedders :
             self.use_elmo = True
             self.elmo_embedder = self._token_embedders['elmo']
+
+        self.use_char = False
+        if 'elmo' in self._token_embedders:
+            self.use_char = True
+            self.char_embeddder = self._token_embedders['token_charactes']
             
         self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo)
 
@@ -75,7 +80,8 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
     @overrides
     def get_output_dim(self) -> int:
         return self.output_dim + (self.glove_embedder.get_output_dim() if self.use_glove else 0) + \
-                (self.elmo_embedder.get_output_dim() if self.use_elmo else 0)
+                (self.elmo_embedder.get_output_dim() if self.use_elmo else 0) + \
+               (self.char_embedder.get_output_dim() if self.use_char else 0)
 
     def forward(self, tokens, num_wrapping_dims: int = 0) -> torch.Tensor:
         embedded_representations = []
@@ -107,10 +113,10 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             elmo_emb = embedder(tokens['elmo'])
             combined_emb = torch.cat([combined_emb, elmo_emb],dim=-1)
 
-        if 'token_characters' in keys:
+        if self.use_char:
             embedder = getattr(self, 'token_embedder_token_characters')
             for _ in range(num_wrapping_dims):
-                embedder = TimeDistributed(embedder)
+                embedder = TimeDistributed(self.char_embeddder)
             token_vectors = embedder(tokens['tokens'])
             combined_emb = torch.cat([combined_emb, token_vectors], dim=-1)
         
