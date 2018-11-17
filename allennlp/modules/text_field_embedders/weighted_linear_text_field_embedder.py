@@ -106,6 +106,13 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
                 embedder = TimeDistributed(self.elmo_embedder)
             elmo_emb = embedder(tokens['elmo'])
             combined_emb = torch.cat([combined_emb, elmo_emb],dim=-1)
+
+        if 'token_characters' in keys:
+            embedder = getattr(self, 'token_embedder_token_characters')
+            for _ in range(num_wrapping_dims):
+                embedder = TimeDistributed(embedder)
+            token_vectors = embedder(tokens['tokens'])
+            combined_emb = torch.cat([combined_emb, token_vectors], dim=-1)
         
         return combined_emb
 
