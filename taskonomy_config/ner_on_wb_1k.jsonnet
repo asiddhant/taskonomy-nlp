@@ -1,5 +1,8 @@
 {
-  "dataset_reader": {
+  "dataset_reader":{
+    "type": "ontonotes_ner_pkl"
+  },
+  "validation_dataset_reader": {
     "type": "ontonotes_ner",
     "domain_identifier" : "wb",
     "coding_scheme": "BIOUL",
@@ -23,7 +26,6 @@
     "dropout": 0.5,
     "include_start_end_transitions": false,
     "text_field_embedder": {
-            "type": "weighted_average",
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
@@ -31,7 +33,7 @@
                     "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
                     "trainable": true
                 },
-                "toke_characters": {
+                "token_characters": {
                         "type": "character_encoding",
                         "embedding": {
                             "embedding_dim": 16

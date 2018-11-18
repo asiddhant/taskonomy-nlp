@@ -11,6 +11,8 @@ from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.tokenizers import Token
 from allennlp.data.dataset_readers.dataset_utils import Ontonotes, OntonotesSentence, to_bioul
+import pickle as pkl
+
 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -55,7 +57,7 @@ class OntonotesNamedEntityRecognitionPkl(DatasetReader):
     """
     @overrides
     def _read(self, file_path: str):
-        logger.info("Reading SRL instances from dataset files at: %s", file_path)
+        logger.info("Reading NER instances from dataset files at: %s", file_path)
         load_data = pkl.load(open(file_path,'rb'))
         logger.info("Number of Instances Found: %s", len(load_data))
         for x in load_data:
