@@ -11,6 +11,7 @@ from allennlp.data.dataset_readers.ccgbank import CcgBankDatasetReader
 from allennlp.data.dataset_readers.conll2003 import Conll2003DatasetReader
 from allennlp.data.dataset_readers.conll2000 import Conll2000DatasetReader
 from allennlp.data.dataset_readers.ontonotes_ner import OntonotesNamedEntityRecognition
+from allennlp.data.dataset_readers.ontonotes_ner_pkl import OntonotesNamedEntityRecognitionPkl
 from allennlp.data.dataset_readers.coreference_resolution import ConllCorefReader, WinobiasReader
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.dataset_readers.event2mind import Event2MindDatasetReader
@@ -19,6 +20,7 @@ from allennlp.data.dataset_readers.multiprocess_dataset_reader import Multiproce
 from allennlp.data.dataset_readers.penn_tree_bank import PennTreeBankConstituencySpanDatasetReader
 from allennlp.data.dataset_readers.reading_comprehension import SquadReader, TriviaQaReader, QuACReader
 from allennlp.data.dataset_readers.semantic_role_labeling import SrlReader
+from allennlp.data.dataset_readers.semantic_role_labeling_pkl import SrlReaderPkl
 from allennlp.data.dataset_readers.seq2seq import Seq2SeqDatasetReader
 from allennlp.data.dataset_readers.sequence_tagging import SequenceTaggingDatasetReader
 from allennlp.data.dataset_readers.snli import SnliReader
