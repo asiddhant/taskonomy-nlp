@@ -204,7 +204,9 @@ class CrfTagger(Model):
         loss : ``torch.FloatTensor``, optional
             A scalar loss to be optimised. Only computed if gold label ``tags`` are provided.
         """
+        tokens['metadata'] = metadata
         embedded_text_input = self.text_field_embedder(tokens)
+        del tokens['metadata']
         mask = util.get_text_field_mask(tokens)
 
         if self.dropout:
