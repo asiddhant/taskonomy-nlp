@@ -14,6 +14,9 @@
       "token_characters": {
         "type": "characters"
       },
+	"elmo": {
+                "type": "elmo_characters"
+            }
     }
   },
   "train_data_path": std.extVar("NER_TRAIN_DATA_PATH"),
