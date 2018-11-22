@@ -26,7 +26,7 @@
                     "dropout": 0.1
                 },
                 "dependency_embedder": {
-                    "type": "dependency_embedder_2",
+                    "type": "dependency_embedder",
                     "serialization_dir":"pretrained/dependency-parser/",
                     "cuda_device":0
                 },

@@ -82,7 +82,6 @@ class ElmoTokenEmbedder2(TokenEmbedder):
         The ELMo representations for the input sequence, shape
         ``(batch_size, timesteps, embedding_dim)``
         """
-        print('Forwared###################################################')####
         elmo_output = self._elmo(inputs, word_inputs)
         elmo_representations = elmo_output['elmo_representations'][0]
         elmo_lstm_output = elmo_output['elmo_lstm_output']

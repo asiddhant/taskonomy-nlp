@@ -87,10 +87,6 @@ class WeightedAverageTextFieldEmbedder2(TextFieldEmbedder):
         for _ in range(num_wrapping_dims):
             embedder = TimeDistributed(self.elmo_embedder)
         elmo_emb, elmo_lstm_output = embedder(tokens['elmo'])
-        #############
-        print(elmo_emb.shape) #
-        print(tokens['elmo'].shape)####
-        print(len(elmo_lstm_output['activations']),elmo_lstm_output['activations'][0].shape)#######
             
         embedded_representations = []
         keys = sorted(self._token_embedders.keys())

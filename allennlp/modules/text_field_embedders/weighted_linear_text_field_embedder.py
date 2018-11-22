@@ -57,15 +57,15 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             self.elmo_embedder = self._token_embedders['elmo']
 
         self.use_char = False
-        if 'elmo' in self._token_embedders:
+        if 'token_characters' in self._token_embedders:
             self.use_char = True
-            self.char_embeddder = self._token_embedders['token_charactes']
+            self.char_embeddder = self._token_embedders['token_characters']
             
-        self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo)
+        self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo) - int(self.use_char)
 
         self.linear_layers = {}
         for key, embedder in self._token_embedders.items():
-            if key in ['tokens','elmo']:
+            if key in ['tokens','elmo','token_characters']:
                 continue
             in_dim = embedder.get_output_dim()
             out_dim = self.output_dim
@@ -89,7 +89,7 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         for key in keys:
             # Note: need to use getattr here so that the pytorch voodoo
             # with submodules works with multiple GPUs.
-            if key in ['tokens','elmo']:
+            if key in ['tokens','elmo','token_characters']:
                 continue
             embedder = getattr(self, 'token_embedder_{}'.format(key))
             for _ in range(num_wrapping_dims):
