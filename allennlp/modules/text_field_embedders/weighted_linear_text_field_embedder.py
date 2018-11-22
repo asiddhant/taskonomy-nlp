@@ -57,15 +57,16 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             self.elmo_embedder = self._token_embedders['elmo']
 
         self.use_char = False
-        if 'elmo' in self._token_embedders:
+        if 'token_characters' in self._token_embedders:
             self.use_char = True
-            self.char_embeddder = self._token_embedders['token_charactes']
+            self.char_embedder = self._token_embedders['token_characters']
             
-        self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo)
+        self.num_tasks = len(self._token_embedders) - int(self.use_glove) - int(self.use_elmo) - int(self.use_char)
 
+        self.separate_embedder_keys = set(['tokens', 'elmo', 'token_characters'])
         self.linear_layers = {}
         for key, embedder in self._token_embedders.items():
-            if key in ['tokens','elmo']:
+            if key in self.separate_embedder_keys:
                 continue
             in_dim = embedder.get_output_dim()
             out_dim = self.output_dim
@@ -75,6 +76,10 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
          
         self.scalar_mix = ScalarMix(self.num_tasks)
         self.add_module('scalar_mix', self.scalar_mix)
+
+
+
+
         
 
     @overrides
@@ -89,7 +94,7 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
         for key in keys:
             # Note: need to use getattr here so that the pytorch voodoo
             # with submodules works with multiple GPUs.
-            if key in ['tokens','elmo']:
+            if key in self.separate_embedder_keys:
                 continue
             embedder = getattr(self, 'token_embedder_{}'.format(key))
             for _ in range(num_wrapping_dims):
@@ -117,7 +122,7 @@ class WeightedAverageTextFieldEmbedder(TextFieldEmbedder):
             embedder = getattr(self, 'token_embedder_token_characters')
             for _ in range(num_wrapping_dims):
                 embedder = TimeDistributed(self.char_embeddder)
-            token_vectors = embedder(tokens['tokens'])
+            token_vectors = embedder(tokens['token_characters'])
             combined_emb = torch.cat([combined_emb, token_vectors], dim=-1)
         
         return combined_emb
