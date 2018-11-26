@@ -3,7 +3,6 @@
 {
   "dataset_reader": {
     "type": "ontonotes_ner",
-    "tag_label": "ner",
     "coding_scheme": "BIOUL",
     "token_indexers": {
       "tokens": {
@@ -15,9 +14,8 @@
       },
     }
   },
-  "train_data_path": std.extVar("NER_TRAIN_DATA_PATH"),
-  "validation_data_path": std.extVar("NER_TEST_A_PATH"),
-  "test_data_path": std.extVar("NER_TEST_B_PATH"),
+  "train_data_path": std.extVar("SRL_TRAIN_DATA_PATH"),
+  "validation_data_path": std.extVar("SRL_VAL_DATA_PATH"),
   "model": {
     "type": "crf_tagger",
     "label_encoding": "BIOUL",
@@ -26,28 +24,13 @@
     "dropout": 0.5,
     "include_start_end_transitions": false,
     "text_field_embedder": {
-            "type": "weighted_average",
+            "type": "basic",
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
                     "embedding_dim": 100,
                     "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
                     "trainable": true
-                },
-                "dependency_embedder": {
-                    "type": "dependency_embedder",
-                    "serialization_dir":"pretrained/dp_glove/",
-                    "cuda_device":0
-                },
-                "constituency_embedder": {
-                    "type": "constituency_embedder",
-                    "serialization_dir":"pretrained/cp_glove/",
-                    "cuda_device":0
-                },
-                "ner_embedder": {
-                    "type": "srl_embedder",
-                    "serialization_dir":"pretrained/srl_glove/",
-                    "cuda_device":0
                 },
                 "token_characters": {
                         "type": "character_encoding",
@@ -63,16 +46,15 @@
                         }
                  }
             },
-            "output_dim": 200
-        }
+        },
     "encoder": {
         "type": "lstm",
-        "input_size": 200 + 100 + 128,
+        "input_size": 100 + 128,
         "hidden_size": 200,
-        "num_layers": 2,
+        "num_layers": 1,
         "dropout": 0.5,
         "bidirectional": true
-    },
+    }
   },
   "iterator": {
     "type": "basic",
