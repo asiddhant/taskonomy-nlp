@@ -22,12 +22,12 @@
                 },
                 "dependency_embedder": {
                     "type": "dependency_embedder",
-                    "serialization_dir":"pretrained/dependency-parser/",
+                    "serialization_dir":"pretrained/dp_glove/",
                     "cuda_device":0
                 },
                 "constituency_embedder": {
                     "type": "constituency_embedder",
-                    "serialization_dir":"pretrained/constituency-parser/",
+                    "serialization_dir":"pretrained/cp_glove/",
                     "cuda_device":0
                 },
                 "ner_embedder": {
