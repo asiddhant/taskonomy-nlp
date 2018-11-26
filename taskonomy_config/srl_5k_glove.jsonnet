@@ -42,7 +42,7 @@
   "iterator": {
     "type": "bucket",
     "sorting_keys": [["tokens", "num_tokens"]],
-    "batch_size" : 8
+    "batch_size" : 16
   },
   "validation_iterator": {
     "type": "bucket",

@@ -1,10 +1,11 @@
-// Our method for SRL on Ontonotes bn dataset.
 {
-    "dataset_reader":{
-      "type":"srlpkl"},
+    "dataset_reader": {
+      "type":"srlpkl"
+    },
 
     "validation_dataset_reader":{
-      "type":"srl"},
+      "type":"srl"
+    },
 
     "train_data_path": std.extVar('SRL_TRAIN_DATA_PATH'),
     "validation_data_path": std.extVar('SRL_VAL_DATA_PATH'),
@@ -78,7 +79,7 @@
                 "num_tokens"
             ]
         ],
-        "batch_size": 8
+        "batch_size": 16
     },
     "validation_iterator": {
         "type": "bucket",
