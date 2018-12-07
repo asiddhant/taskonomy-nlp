@@ -87,7 +87,7 @@ class Conll2003DatasetReader(DatasetReader):
         for label in feature_labels:
             if label not in self._VALID_LABELS:
                 raise ConfigurationError("unknown feature label type: {}".format(label))
-        if coding_scheme not in ("IOB1", "BIOUL"):
+        if coding_scheme not in ("IOB1", "BIOUL","BIO"):
             raise ConfigurationError("unknown coding_scheme: {}".format(coding_scheme))
 
         self.tag_label = tag_label
@@ -101,7 +101,7 @@ class Conll2003DatasetReader(DatasetReader):
         # if `file_path` is a URL, redirect to the cache
         file_path = cached_path(file_path)
 
-        with open(file_path, "r") as data_file:
+        with open(file_path, "r", encoding='ISO-8859-1') as data_file:
             logger.info("Reading instances from lines in file at: %s", file_path)
 
             # Group into alternative divider / sentence chunks.
@@ -112,11 +112,15 @@ class Conll2003DatasetReader(DatasetReader):
                     fields = [line.strip().split() for line in lines]
                     # unzipping trick returns tuples, but our Fields need lists
                     fields = [list(field) for field in zip(*fields)]
-                    if len(fields) == 3 : tokens_, pos_tags, chunk_tags, ner_tags = fields
-                    else :
-                        tokens_,ner_tags = fields
+                    if len(fields) == 4 : tokens_, pos_tags, chunk_tags, ner_tags = fields
+                    elif len(fields) == 3  :
+                        tokens_,_,ner_tags = fields
                         pos_tags = None
                         chunk_tags = None
+                    elif len(fields) == 5  :
+                        tokens_, lemma, pos_tags, chunk_tags, ner_tags = fields
+                    else :
+                        raise Exception("could not parse line")
                     # TextField requires ``Token`` objects
                     tokens = [Token(token) for token in tokens_]
 

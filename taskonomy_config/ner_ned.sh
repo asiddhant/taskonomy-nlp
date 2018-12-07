@@ -1,0 +1,1 @@
+NER_TRAIN_DATA_PATH=/Users/mihirkale.s/Downloads/ner_xling/ned.train NER_TEST_A_DATA_PATH=/Users/mihirkale.s/Downloads/ner_xling/ned.testa NER_TEST_B_DATA_PATH=/Users/mihirkale.s/Downloads/ner_xling/all.all allennlp train -s saved_models/ner_ned taskonomy_config/ner_ned.jsonnet

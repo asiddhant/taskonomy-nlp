@@ -99,7 +99,8 @@ def bio_tags_to_spans(tag_sequence: List[str],
         # Actual BIO tag.
         bio_tag = string_tag[0]
         if bio_tag not in ["B", "I", "O"]:
-            raise InvalidTagSequence(tag_sequence)
+            bio_tag = "O"
+            #raise InvalidTagSequence(tag_sequence)
         conll_tag = string_tag[2:]
         if bio_tag == "O" or conll_tag in classes_to_ignore:
             # The span has ended.
