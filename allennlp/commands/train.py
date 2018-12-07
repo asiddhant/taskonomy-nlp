@@ -161,6 +161,12 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
         test_data = validation_and_test_dataset_reader.read(test_data_path)
         datasets["test"] = test_data
 
+    #other_data_path = params.pop("other_data_path",None)
+    #if other_data_path is not None:
+    #    logger.info("Reading other data from %s", other_data_path)
+    #    other_data_path = validation_and_test_dataset_reader.read(other_data_path)
+    #    datasets["other"] = other_data_path
+
     return datasets
 
 def create_serialization_dir(params: Params, serialization_dir: str, recover: bool) -> None:

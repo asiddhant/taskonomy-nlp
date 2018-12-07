@@ -112,7 +112,11 @@ class Conll2003DatasetReader(DatasetReader):
                     fields = [line.strip().split() for line in lines]
                     # unzipping trick returns tuples, but our Fields need lists
                     fields = [list(field) for field in zip(*fields)]
-                    tokens_, pos_tags, chunk_tags, ner_tags = fields
+                    if len(fields) == 3 : tokens_, pos_tags, chunk_tags, ner_tags = fields
+                    else :
+                        tokens_,ner_tags = fields
+                        pos_tags = None
+                        chunk_tags = None
                     # TextField requires ``Token`` objects
                     tokens = [Token(token) for token in tokens_]
 
