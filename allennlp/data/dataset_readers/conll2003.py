@@ -12,6 +12,7 @@ from allennlp.data.fields import TextField, SequenceLabelField, Field, MetadataF
 from allennlp.data.instance import Instance
 from allennlp.data.token_indexers import TokenIndexer, SingleIdTokenIndexer
 from allennlp.data.tokenizers import Token
+import pickle
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -179,3 +180,44 @@ class Conll2003DatasetReader(DatasetReader):
                                                          self.label_namespace)
 
         return Instance(instance_fields)
+
+
+@DatasetReader.register("conll2003_pkl")
+class Conll2003DatasetReaderPkl(DatasetReader):
+    """
+    This DatasetReader is designed to read in the English OntoNotes v5.0 data
+    for fine-grained named entity recognition. It returns a dataset of instances with the
+    following fields:
+
+    tokens : ``TextField``
+        The tokens in the sentence.
+    tags : ``SequenceLabelField``
+        A sequence of BIO tags for the NER classes.
+
+    Note that the "/pt/" directory of the Onotonotes dataset representing annotations
+    on the new and old testaments of the Bible are excluded, because they do not contain
+    NER annotations.
+
+    Parameters
+    ----------
+    token_indexers : ``Dict[str, TokenIndexer]``, optional
+        We similarly use this for both the premise and the hypothesis.  See :class:`TokenIndexer`.
+        Default is ``{"tokens": SingleIdTokenIndexer()}``.
+    domain_identifier: ``str``, (default = None)
+        A string denoting a sub-domain of the Ontonotes 5.0 dataset to use. If present, only
+        conll files under paths containing this domain identifier will be processed.
+    coding_scheme : ``str``, (default = None).
+        The coding scheme to use for the NER labels. Valid options are "BIO" or "BIOUL".
+
+    Returns
+    -------
+    A ``Dataset`` of ``Instances`` for Fine-Grained NER.
+
+    """
+    @overrides
+    def _read(self, file_path: str):
+        logger.info("Reading NER instances from dataset files at: %s", file_path)
+        load_data = pickle.load(open(file_path,'rb'))
+        logger.info("Number of Instances Found: %s", len(load_data))
+        for x in load_data:
+            yield x
