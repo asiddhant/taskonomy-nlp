@@ -1,0 +1,1 @@
+NER_TRAIN_DATA_PATH=datasets/ner_xling/deu_1k.pkl NER_TEST_A_DATA_PATH=datasets/ner_xling/deu.testa NER_TEST_B_DATA_PATH=datasets/ner_xling/deu.testb  allennlp train -s saved_models/ner_1k_deu_wt taskonomy_config/ner_1k_deu_wt.jsonnet

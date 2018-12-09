@@ -1,24 +1,11 @@
 {
     "evaluate_on_test":true,
     "dataset_reader": {
-        "type": "conll2003",
-        "token_indexers": {
-            "token_characters": {
-                "type": "characters"
-            },
-            "tokens": {
-                "type": "single_id",
-                "lowercase_tokens": true
-            }
-        }
+        "type": "conll2003_pkl"
     },
     "iterator": {
         "type": "basic",
-        "batch_size": 32
-    },
-    "validation_iterator": {
-        "type": "basic",
-        "batch_size": 128
+        "batch_size": 8
     },
     "model": {
         "type": "crf_tagger",
@@ -30,7 +17,7 @@
             "bidirectional": true,
             "dropout": 0.5,
             "hidden_size": 200,
-            "input_size": 300 + 128 ,
+            "input_size": 428,
             "num_layers": 1
         },
         "include_start_end_transitions": false,
@@ -38,12 +25,6 @@
         "text_field_embedder": {
             "type": "basic",
             "token_embedders": {
-                "tokens": {
-                    "type": "embedding",
-                    "embedding_dim": 300,
-                    "pretrained_file": "datasets/fasttext/wiki.multi.vec",
-                    "trainable": false
-                },
                 "token_characters": {
                     "type": "character_encoding",
                     "embedding": {
@@ -58,13 +39,19 @@
                         ],
                         "num_filters": 128
                     }
+                },
+                "tokens": {
+                    "type": "embedding",
+                    "embedding_dim": 300,
+                    "pretrained_file": "datasets/fasttext/wiki.multi.vec",
+                    "trainable": false
                 }
             }
         }
     },
-    "train_data_path": std.extVar('NER_TRAIN_DATA_PATH'),
-    "validation_data_path": std.extVar('NER_TEST_A_DATA_PATH'),
-    "test_data_path": std.extVar('NER_TEST_B_DATA_PATH'),
+    "train_data_path": "datasets/ner_xling/deu_5k.pkl",
+    "validation_data_path": "datasets/ner_xling/deu.testa",
+    "test_data_path": "datasets/ner_xling/deu.testb",
     "trainer": {
         "cuda_device": 0,
         "grad_norm": 5,
@@ -89,5 +76,9 @@
                 "lowercase_tokens": true
             }
         }
+    },
+    "validation_iterator": {
+        "type": "basic",
+        "batch_size": 64
     }
 }

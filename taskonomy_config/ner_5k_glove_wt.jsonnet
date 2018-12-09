@@ -14,7 +14,7 @@
                 "num_tokens"
             ]
         ],
-        "batch_size": 128
+        "batch_size": 64
     },
     "model": {
         "type": "crf_tagger",
@@ -53,7 +53,7 @@
                 },
                 "srl_embedder": {
                     "type": "srl_embedder",
-                    "serialization_dir":"pretrained/srl_glove/",
+                    "serialization_dir":"pretrained/srl_glove_all/",
                     "cuda_device":0
                 },
 
@@ -76,7 +76,7 @@
         }
     },
     "train_data_path": std.extVar('NER_TRAIN_DATA_PATH'),
-    "validation_data_path": std.extVar('NER_TEST_A_DATA_PATH'),,
+    "validation_data_path": std.extVar('NER_TEST_A_DATA_PATH'),
     "trainer": {
         "cuda_device": 0,
         "grad_norm": 5,

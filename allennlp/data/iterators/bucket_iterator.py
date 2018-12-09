@@ -22,10 +22,20 @@ def sort_by_padding(instances: List[Instance],
     ``sorting_keys`` (in the order in which they are provided).  ``sorting_keys`` is a list of
     ``(field_name, padding_key)`` tuples.
     """
+    indices_to_ignore = []
+    for i,instance in enumerate(instances):
+        try:
+            instance.index_fields(vocab)
+        except:
+            indices_to_ignore.append(i)
+
+    for ind in sorted(indices_to_ignore, reverse=True):
+        del instances[ind]
+
     instances_with_lengths = []
     for instance in instances:
         # Make sure instance is indexed before calling .get_padding
-        instance.index_fields(vocab)
+        # instance.index_fields(vocab)
         padding_lengths = cast(Dict[str, Dict[str, float]], instance.get_padding_lengths())
         if padding_noise > 0.0:
             noisy_lengths = {}

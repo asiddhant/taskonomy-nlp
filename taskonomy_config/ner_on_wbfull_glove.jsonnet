@@ -1,8 +1,12 @@
 {
-    "evaluate_on_test":true,
     "dataset_reader": {
-        "type": "conll2003",
+        "type": "ontonotes_ner",
+        "coding_scheme": "BIOUL",
+        "domain_identifier": "wb",
         "token_indexers": {
+            "elmo": {
+                "type": "elmo_characters"
+            },
             "token_characters": {
                 "type": "characters"
             },
@@ -14,11 +18,17 @@
     },
     "iterator": {
         "type": "basic",
-        "batch_size": 32
+        "batch_size": 64
     },
     "validation_iterator": {
-        "type": "basic",
-        "batch_size": 128
+        "type": "bucket",
+        "sorting_keys": [
+            [
+                "tokens",
+                "num_tokens"
+            ]
+        ],
+        "batch_size": 64
     },
     "model": {
         "type": "crf_tagger",
@@ -30,19 +40,19 @@
             "bidirectional": true,
             "dropout": 0.5,
             "hidden_size": 200,
-            "input_size": 300 + 128 ,
+            "input_size": 100 + 128 ,
             "num_layers": 1
         },
         "include_start_end_transitions": false,
-        "label_encoding": "IOB1",
+        "label_encoding": "BIOUL",
         "text_field_embedder": {
             "type": "basic",
             "token_embedders": {
                 "tokens": {
                     "type": "embedding",
-                    "embedding_dim": 300,
-                    "pretrained_file": "datasets/fasttext/wiki.multi.vec",
-                    "trainable": false
+                    "embedding_dim": 100,
+                    "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.100d.txt.gz",
+                    "trainable": true
                 },
                 "token_characters": {
                     "type": "character_encoding",
@@ -63,31 +73,17 @@
         }
     },
     "train_data_path": std.extVar('NER_TRAIN_DATA_PATH'),
-    "validation_data_path": std.extVar('NER_TEST_A_DATA_PATH'),
-    "test_data_path": std.extVar('NER_TEST_B_DATA_PATH'),
+    "validation_data_path": std.extVar('NER_VAL_DATA_PATH'),
     "trainer": {
         "cuda_device": 0,
         "grad_norm": 5,
-        "num_epochs": 25,
+        "num_epochs": 75,
         "num_serialized_models_to_keep": 3,
         "optimizer": {
             "type": "adam",
             "lr": 0.001
         },
-        "patience": 25,
+        "patience": 10,
         "validation_metric": "+f1-measure-overall"
-    },
-    "validation_dataset_reader": {
-        "type": "conll2003",
-        "coding_scheme": "IOB1",
-        "token_indexers": {
-            "token_characters": {
-                "type": "characters"
-            },
-            "tokens": {
-                "type": "single_id",
-                "lowercase_tokens": true
-            }
-        }
     }
 }

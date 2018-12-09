@@ -13,6 +13,7 @@ from allennlp.commands.dry_run import DryRun
 from allennlp.commands.subcommand import Subcommand
 from allennlp.commands.test_install import TestInstall
 from allennlp.commands.train import Train
+from allennlp.commands.train_restart import TrainRestart
 from allennlp.common.util import import_submodules
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -35,6 +36,7 @@ def main(prog: str = None,
             # Default commands
             "configure": Configure(),
             "train": Train(),
+            "train_restart": TrainRestart(),
             "evaluate": Evaluate(),
             "predict": Predict(),
             "make-vocab": MakeVocab(),

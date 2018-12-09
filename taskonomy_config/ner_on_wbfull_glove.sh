@@ -1,0 +1,1 @@
+NER_TRAIN_DATA_PATH=datasets/conll-formatted-ontonotes-5.0/data/train/ NER_VAL_DATA_PATH=datasets/conll-formatted-ontonotes-5.0/data/development/   allennlp train -s saved_models/ner_on_wbfull_glove taskonomy_config/ner_on_wbfull_glove.jsonnet
