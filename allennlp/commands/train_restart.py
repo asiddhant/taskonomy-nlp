@@ -155,7 +155,7 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
         validation_data = validation_and_test_dataset_reader.read(validation_data_path)
         datasets["validation"] = validation_data
 
-    test_data_path = params.pop("test_data_path", None)
+    test_data_path = validation_data_path.replace('development','test') if validation_data_path else None
     if test_data_path is not None:
         logger.info("Reading test data from %s", test_data_path)
         test_data = validation_and_test_dataset_reader.read(test_data_path)
