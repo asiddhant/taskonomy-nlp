@@ -151,8 +151,19 @@ class Batch(Iterable):
         return iter(self.instances)
 
     def index_instances(self, vocab: Vocabulary) -> None:
-        for instance in self.instances:
-            instance.index_fields(vocab)
+        indices_to_ignore = []
+        for i,instance in enumerate(self.instances):
+            try:
+                instance.index_fields(vocab)
+            except:
+                indices_to_ignore.append(i)
+
+        for ind in sorted(indices_to_ignore, reverse=True):
+            del self.instances[ind]
+
+        if len(indices_to_ignore):
+            logger.info("Ignored Instances:", len(indices_to_ignore))
+
 
     def print_statistics(self) -> None:
         # Make sure if has been indexed first

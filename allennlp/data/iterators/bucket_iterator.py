@@ -28,6 +28,9 @@ def sort_by_padding(instances: List[Instance],
             instance.index_fields(vocab)
         except:
             indices_to_ignore.append(i)
+    
+    if len(indices_to_ignore):
+        logger.info("Ignored Instances:", len(indices_to_ignore))
 
     for ind in sorted(indices_to_ignore, reverse=True):
         del instances[ind]
