@@ -273,12 +273,8 @@ def train_model(params: Params,
     logger.info("From dataset instances, %s will be considered for vocabulary creation.",
                 ", ".join(datasets_for_vocab_creation))
     
-    vocab = Vocabulary.from_params(
-            params.pop("vocabulary", {}),
-            (instance for key, dataset in all_datasets.items()
-             for instance in dataset
-             if key in datasets_for_vocab_creation)
-    )
+    vocab_dir = os.path.join(serialization_dir, 'vocabulary')
+    vocab = Vocabulary.from_files(vocab_dir)
 
     # vocab.save_to_files(os.path.join(serialization_dir, "vocabulary"))
 
