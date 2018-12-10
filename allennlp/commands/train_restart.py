@@ -143,11 +143,13 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
         logger.info("Using a separate dataset reader to load validation and test data.")
         validation_and_test_dataset_reader = DatasetReader.from_params(validation_dataset_reader_params)
 
-    train_data_path = params.pop('train_data_path')
-    logger.info("Reading training data from %s", train_data_path)
-    train_data = dataset_reader.read(train_data_path)
+    # train_data_path = params.pop('train_data_path')
+    # logger.info("Reading training data from %s", train_data_path)
+    # train_data = dataset_reader.read(train_data_path)
 
-    datasets: Dict[str, Iterable[Instance]] = {"train": train_data}
+    # datasets: Dict[str, Iterable[Instance]] = {"train": train_data}
+
+    datasets: Dict[str, Iterable[Instance]] = {}
 
     validation_data_path = params.pop('validation_data_path', None)
     if validation_data_path is not None:
@@ -264,7 +266,6 @@ def train_model(params: Params,
     params.to_file(os.path.join(serialization_dir, CONFIG_NAME))
 
     all_datasets = datasets_from_params(params)
-    datasets_for_vocab_creation = ['train','validation']
 
     for dataset in datasets_for_vocab_creation:
         if dataset not in all_datasets:
@@ -289,7 +290,7 @@ def train_model(params: Params,
     else:
         validation_iterator = None
 
-    train_data = all_datasets['train']
+    # train_data = all_datasets['train']
     validation_data = all_datasets.get('validation')
     test_data = all_datasets.get('test')
 
