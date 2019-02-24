@@ -156,9 +156,9 @@ class ElmoTokenEmbedderCached(TokenEmbedder):
                    scalar_mix_parameters=scalar_mix_parameters)
 
     def add_to_cache(self,embeddings,keys,lens):
-    for key,length,embedding in zip(keys,lens,embeddings):
-        if key not in self.cache :
-            self.cache[key] = embedding[:length,:].to(torch.device("cpu"))
+        for key,length,embedding in zip(keys,lens,embeddings):
+            if key not in self.cache :
+                self.cache[key] = embedding[:length,:].to(torch.device("cpu"))
             #print("added", embedding.size(),self.cache[key].size(), len(key))
     #print(len(self.cache))
 
