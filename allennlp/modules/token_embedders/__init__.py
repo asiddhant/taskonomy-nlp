@@ -9,6 +9,7 @@ from allennlp.modules.token_embedders.fasttext_embedder import FastTextEmbedding
 from allennlp.modules.token_embedders.token_characters_encoder import TokenCharactersEncoder
 from allennlp.modules.token_embedders.elmo_token_embedder import ElmoTokenEmbedder
 from allennlp.modules.token_embedders.elmo_token_embedder_2 import ElmoTokenEmbedder2
+from allennlp.modules.token_embedders.elmo_token_embedder_cached import ElmoTokenEmbedderCached
 from allennlp.modules.token_embedders.openai_transformer_embedder import OpenaiTransformerEmbedder
 from allennlp.modules.token_embedders.dependency_embedder import DependencyParsingEmbedding
 from allennlp.modules.token_embedders.srl_embedder import SRLEmbedding
